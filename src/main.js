@@ -15,7 +15,8 @@ import { SwipeView } from './ui/SwipeView.js';
 import { WheelView } from './ui/WheelView.js';
 import { WinnerModal } from './ui/WinnerModal.js';
 import { TreeModal } from './ui/TreeModal.js';
-import { PoolEditorModal } from './ui/PoolEditorModal.js';
+import { PoolPickerSheet } from './ui/PoolPickerSheet.js';
+import { SettingsSheet } from './ui/SettingsSheet.js';
 
 class App {
   constructor() {
@@ -42,8 +43,9 @@ class App {
     this.soundToggleBtn = document.getElementById('btn-sound-toggle');
     this.toastContainer = document.getElementById('toast-container');
 
-    // UI Modules
+    // UI Modules & Sheets
     this.confetti = new Confetti(this.confettiCanvas);
+
     this.winnerModal = new WinnerModal({
       modalContainer: this.modalContainer,
       confetti: this.confetti,
@@ -51,16 +53,27 @@ class App {
       hapticsService: this.haptics,
       eventBus: this.bus,
     });
+
     this.treeModal = new TreeModal({
       modalContainer: this.modalContainer,
       audioService: this.audio,
       eventBus: this.bus,
     });
-    this.poolEditorModal = new PoolEditorModal({
-      modalContainer: this.modalContainer,
+
+    this.poolPickerSheet = new PoolPickerSheet({
+      container: this.modalContainer,
+      storageManager: this.storage,
+      audioService: this.audio,
+      hapticsService: this.haptics,
+      eventBus: this.bus,
+    });
+
+    this.settingsSheet = new SettingsSheet({
+      container: this.modalContainer,
       storageManager: this.storage,
       cooldownManager: this.cooldown,
       audioService: this.audio,
+      hapticsService: this.haptics,
       eventBus: this.bus,
     });
 
@@ -92,19 +105,14 @@ class App {
   }
 
   _init() {
-    // Sync settings
     const settings = this.storage.getSettings();
     this.audio.setEnabled(settings.soundEnabled);
     this.haptics.setEnabled(settings.hapticsEnabled);
     this._updateSoundIcon(settings.soundEnabled);
 
-    // Event Bus Bindings
     this._bindEvents();
-
-    // Setup global listeners
     this._bindUI();
 
-    // Start with current pool
     this.refreshPoolDisplay();
     this.startActiveMode();
   }
@@ -128,6 +136,10 @@ class App {
 
     this.bus.on('mode:restart', () => {
       this.startActiveMode();
+    });
+
+    this.bus.on('open:settings', () => {
+      this.settingsSheet.show();
     });
 
     this.bus.on('cooldown:record', (winner) => {
@@ -159,22 +171,27 @@ class App {
       });
     });
 
-    // Header buttons
+    // Header buttons (De-duped!)
+    // 1. Top Category Pill -> Opens Quick Category Picker Sheet
     if (this.poolSelectorBtn) {
       this.poolSelectorBtn.addEventListener('click', () => {
         this.audio.playTap();
-        this.poolEditorModal.show();
+        this.haptics.tap();
+        this.poolPickerSheet.show();
       });
     }
 
+    // 2. Settings Gear -> Opens Settings & Library Sheet
     const btnSettings = document.getElementById('btn-header-settings');
     if (btnSettings) {
       btnSettings.addEventListener('click', () => {
         this.audio.playTap();
-        this.poolEditorModal.show();
+        this.haptics.tap();
+        this.settingsSheet.show();
       });
     }
 
+    // 3. Sound Toggle
     if (this.soundToggleBtn) {
       this.soundToggleBtn.addEventListener('click', () => {
         const settings = this.storage.getSettings();
@@ -186,7 +203,7 @@ class App {
       });
     }
 
-    // Keyboard shortcuts
+    // Global keyboard shortcuts
     window.addEventListener('keydown', (e) => {
       if (this.activeMode === 'bracket') {
         this.bracketView.handleKeyDown(e);
@@ -220,7 +237,6 @@ class App {
 
     const { available } = this.cooldown.partition(pool.items, settings.cooldownDays);
 
-    // If cooldown filtered out everything, fall back to entire pool so user is never blocked
     return available.length >= 2 ? available : pool.items;
   }
 
@@ -239,15 +255,15 @@ class App {
       this.viewContainer.innerHTML = `
         <div class="empty-state animate-fade-in">
           <div class="empty-icon">📝</div>
-          <h3>Pool has too few items</h3>
-          <p>Please add at least 2 items to this category in Settings.</p>
+          <h3>Pool has too few choices</h3>
+          <p>Please add at least 2 choices in Settings to begin.</p>
           <button class="btn btn-primary" id="btn-empty-open-settings" style="margin-top: 1rem;">
             Open Settings
           </button>
         </div>
       `;
       const btn = this.viewContainer.querySelector('#btn-empty-open-settings');
-      if (btn) btn.addEventListener('click', () => this.poolEditorModal.show());
+      if (btn) btn.addEventListener('click', () => this.settingsSheet.show());
       return;
     }
 
@@ -270,8 +286,8 @@ class App {
     this.toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.classList.add('toast-fade-out');
-      setTimeout(() => toast.remove(), 300);
-    }, 2800);
+      setTimeout(() => toast.remove(), 260);
+    }, 2600);
   }
 }
 

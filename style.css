@@ -1,5 +1,5 @@
 /* ==========================================================================
-   IndecisionBracket - Premium Product Design System & Stylesheet (v2 Overhaul)
+   IndecisionBracket - Premium Product Design System (iOS Sheet Edition)
    ========================================================================== */
 
 :root {
@@ -27,7 +27,7 @@
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-xl: 26px;
   --radius-full: 9999px;
 
   --shadow-subtle: 0 4px 16px rgba(0, 0, 0, 0.35);
@@ -44,7 +44,7 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow: hidden; /* App shell handles internal scrolling */
+  overflow: hidden;
 }
 
 body {
@@ -136,18 +136,18 @@ body::before {
   font-weight: 700;
 }
 
-/* Pool Selector Pill */
+/* Pool Selector Pill (Opens Quick Category Sheet) */
 .pool-pill {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
-  background: rgba(255, 255, 255, 0.06);
+  padding: 0.42rem 0.8rem;
+  background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
   color: var(--text-main);
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   min-width: 0;
@@ -155,7 +155,7 @@ body::before {
 }
 
 .pool-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--border-bright);
 }
 
@@ -266,7 +266,7 @@ body::before {
 }
 
 /* ==========================================================================
-   Tournament Bracket View (Ergonomic Side-by-Side Faceoff)
+   Tournament Bracket View
    ========================================================================== */
 
 .bracket-view {
@@ -371,7 +371,6 @@ body::before {
   transform: scale(0.97);
 }
 
-/* Distinctive Corner Badges */
 .card-badge {
   position: absolute;
   top: 0.75rem;
@@ -455,7 +454,6 @@ body::before {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Match Transition States */
 .match-card.selected-winner {
   border-color: var(--accent-emerald);
   background: rgba(16, 185, 129, 0.18);
@@ -469,7 +467,6 @@ body::before {
   filter: grayscale(100%);
 }
 
-/* Center VS Badge */
 .vs-divider {
   position: absolute;
   top: 50%;
@@ -500,7 +497,6 @@ body::before {
   -webkit-text-fill-color: transparent;
 }
 
-/* Bracket Actions */
 .bracket-actions {
   display: flex;
   justify-content: center;
@@ -509,25 +505,15 @@ body::before {
   margin-top: 1rem;
 }
 
-/* Responsive adjustment for very narrow screens */
 @media (max-width: 440px) {
-  .faceoff-arena {
-    gap: 0.5rem;
-  }
-  .card-emoji {
-    font-size: 2.8rem;
-  }
-  .card-name {
-    font-size: 0.98rem;
-  }
-  .vs-ring {
-    width: 34px;
-    height: 34px;
-  }
+  .faceoff-arena { gap: 0.5rem; }
+  .card-emoji { font-size: 2.8rem; }
+  .card-name { font-size: 0.98rem; }
+  .vs-ring { width: 34px; height: 34px; }
 }
 
 /* ==========================================================================
-   Duo Swipe ("Tinder for Decisions") View
+   Duo Swipe View
    ========================================================================== */
 
 .swipe-view {
@@ -581,7 +567,6 @@ body::before {
   color: var(--text-main);
 }
 
-/* Card Stack */
 .card-deck {
   flex: 1;
   display: flex;
@@ -655,7 +640,6 @@ body::before {
   color: var(--text-faint);
 }
 
-/* Dynamic Stamp Badges */
 .swipe-badge {
   position: absolute;
   top: 1.5rem;
@@ -684,7 +668,6 @@ body::before {
   transform: rotate(-14deg);
 }
 
-/* Swipe Action Buttons */
 .swipe-controls {
   display: flex;
   justify-content: center;
@@ -708,13 +691,8 @@ body::before {
   box-shadow: var(--shadow-subtle);
 }
 
-.swipe-btn:hover {
-  transform: scale(1.12);
-}
-
-.swipe-btn:active {
-  transform: scale(0.92);
-}
+.swipe-btn:hover { transform: scale(1.12); }
+.swipe-btn:active { transform: scale(0.92); }
 
 .swipe-btn-pass {
   color: var(--accent-rose);
@@ -734,7 +712,6 @@ body::before {
   box-shadow: 0 0 24px rgba(16, 185, 129, 0.45);
 }
 
-/* Handoff Card */
 .handoff-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -836,7 +813,7 @@ body::before {
 }
 
 /* ==========================================================================
-   Modals & Dialogs
+   iOS Native Bottom Sheet Presentation Architecture
    ========================================================================== */
 
 .modal-layer {
@@ -844,8 +821,6 @@ body::before {
   inset: 0;
   z-index: 100;
   display: flex;
-  align-items: center;
-  justify-content: center;
   pointer-events: none;
 }
 
@@ -857,38 +832,97 @@ body::before {
   display: none;
 }
 
+/* Semi-Transparent Blurring Backdrop */
 .modal-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: rgba(4, 6, 9, 0.78);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(3, 5, 8, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
-  padding: 1.25rem;
+  animation: backdropFadeIn 0.22s ease-out;
+  z-index: 100;
 }
 
-.modal-dialog {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
+.backdrop-closing {
+  animation: backdropFadeOut 0.2s ease-in forwards;
+}
+
+/* iOS Bottom Sheet Container */
+.ios-sheet {
   width: 100%;
-  max-width: 440px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-elevated);
+  max-width: 640px;
+  max-height: 88vh;
+  background: rgba(18, 22, 31, 0.96);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: 0 -16px 50px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
   position: relative;
+  animation: iosSheetUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.modal-close-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+.ios-sheet-closing {
+  animation: iosSheetDown 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* iOS Signature Grabber Handle */
+.sheet-grabber-zone {
+  padding: 8px 0 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sheet-grabber {
+  width: 38px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-full);
+  transition: background 0.15s ease;
+}
+
+.sheet-grabber-zone:hover .sheet-grabber {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Sheet Header */
+.sheet-header {
+  padding: 0.4rem 1.25rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sheet-title-group {
+  flex: 1;
+}
+
+.sheet-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.sheet-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.sheet-close-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   color: var(--text-muted);
   cursor: pointer;
@@ -897,17 +931,305 @@ body::before {
   justify-content: center;
   font-size: 0.85rem;
   transition: all 0.15s ease;
-  z-index: 10;
+  margin-left: 0.75rem;
 }
 
-.modal-close-btn:hover {
+.sheet-close-btn:hover {
   background: rgba(255, 255, 255, 0.16);
   color: var(--text-main);
 }
 
-/* Winner Celebration Dialog */
-.winner-dialog {
-  padding: 2.5rem 1.5rem;
+/* Sheet Scrollable Body */
+.sheet-scrollable-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 1.25rem 1.5rem;
+  max-height: calc(88vh - 80px);
+}
+
+/* iOS List Group (Category Picker) */
+.ios-list-group {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.ios-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ios-list-row:last-child {
+  border-bottom: none;
+}
+
+.ios-list-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ios-list-row.row-selected {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.row-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.row-emoji {
+  font-size: 1.5rem;
+}
+
+.row-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.row-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.row-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.row-right {
+  display: flex;
+  align-items: center;
+}
+
+.ios-check {
+  color: var(--accent-primary);
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.row-chevron {
+  color: var(--text-faint);
+  font-size: 1.25rem;
+}
+
+.sheet-action-group {
+  margin-top: 0.75rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* Settings Sheet Sections */
+.sheet-section {
+  margin-bottom: 1.35rem;
+}
+
+.sheet-section-title {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.55rem;
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.section-subtext {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.add-item-card {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.ios-input {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.ios-input:focus {
+  border-color: var(--accent-primary);
+}
+
+/* Chips */
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+}
+
+.chip-cooldown {
+  opacity: 0.65;
+  border-style: dashed;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.cooldown-badge {
+  font-size: 0.68rem;
+  color: var(--accent-amber);
+  font-weight: 600;
+}
+
+.chip-delete-btn, .chip-restore-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 0.75rem;
+  margin-left: 0.2rem;
+}
+
+.chip-delete-btn:hover { color: var(--accent-rose); }
+.chip-restore-btn:hover { color: var(--accent-emerald); }
+
+.empty-hint {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* iOS Settings Card (Rounded Group) */
+.ios-settings-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ios-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ios-setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.setting-desc {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.range-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.range-wrapper input[type="range"] {
+  accent-color: var(--accent-primary);
+}
+
+.range-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* iOS Switch */
+.ios-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.ios-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ios-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.16);
+  transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 24px;
+}
+
+.ios-switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input:checked + .ios-switch-slider {
+  background-color: var(--accent-primary);
+}
+
+input:checked + .ios-switch-slider::before {
+  transform: translateX(20px);
+}
+
+.sheet-button-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* Winner Celebration Sheet */
+.winner-sheet {
+  padding: 1.5rem 1.5rem 2rem;
   text-align: center;
 }
 
@@ -966,15 +1288,10 @@ body::before {
   gap: 0.65rem;
 }
 
-/* Bracket Tree Dialog */
-.tree-dialog {
-  padding: 1.5rem;
-  max-width: 600px;
-}
-
+/* Bracket Tree Sheet */
 .tree-scroll-container {
   overflow-x: auto;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
 }
 
 .tree-grid {
@@ -1030,193 +1347,6 @@ body::before {
   background: rgba(16, 185, 129, 0.12);
 }
 
-/* Settings / Pool Editor Dialog */
-.settings-dialog {
-  padding: 1.5rem;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-}
-
-.modal-header h3 {
-  font-size: 1.15rem;
-  font-weight: 700;
-}
-
-.settings-section {
-  margin-bottom: 1.4rem;
-}
-
-.settings-label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.55rem;
-}
-
-.section-header-split {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.pool-select-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.form-select, .form-input {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-main);
-  padding: 0.55rem 0.75rem;
-  font-size: 0.88rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.form-select {
-  flex: 1;
-}
-
-.form-select:focus, .form-input:focus {
-  border-color: var(--accent-primary);
-}
-
-.add-item-form {
-  display: flex;
-  gap: 0.4rem;
-}
-
-/* Chips */
-.chips-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.item-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-subtle);
-  padding: 0.3rem 0.65rem;
-  border-radius: var(--radius-full);
-  font-size: 0.8rem;
-}
-
-.chip-cooldown {
-  opacity: 0.6;
-  border-style: dashed;
-  background: rgba(245, 158, 11, 0.08);
-}
-
-.cooldown-badge {
-  font-size: 0.68rem;
-  color: var(--accent-amber);
-  font-weight: 600;
-}
-
-.chip-delete-btn, .chip-restore-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: 0.75rem;
-  margin-left: 0.2rem;
-}
-
-.chip-delete-btn:hover {
-  color: var(--accent-rose);
-}
-
-.chip-restore-btn:hover {
-  color: var(--accent-emerald);
-}
-
-.empty-hint {
-  font-size: 0.78rem;
-  color: var(--text-faint);
-  font-style: italic;
-}
-
-/* Toggles and Sliders */
-.setting-toggle-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  font-size: 0.88rem;
-}
-
-.range-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.range-wrapper input[type="range"] {
-  accent-color: var(--accent-primary);
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background-color: rgba(255, 255, 255, 0.12);
-  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 24px;
-}
-
-.slider::before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: var(--accent-primary);
-}
-
-input:checked + .slider::before {
-  transform: translateX(20px);
-}
-
-.settings-backup-row {
-  display: flex;
-  gap: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-subtle);
-}
-
 /* ==========================================================================
    Buttons & UI Elements
    ========================================================================== */
@@ -1236,13 +1366,8 @@ input:checked + .slider::before {
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.btn:hover {
-  transform: translateY(-1px);
-}
-
-.btn:active {
-  transform: scale(0.97);
-}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: scale(0.97); }
 
 .btn.disabled, .btn:disabled {
   opacity: 0.4;
@@ -1362,26 +1487,39 @@ input:checked + .slider::before {
   box-shadow: var(--shadow-elevated);
 }
 
-/* Micro-animations */
-.animate-fade-in {
-  animation: fadeIn 0.22s ease-out;
+/* Animations */
+@keyframes iosSheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
-.animate-scale-up {
-  animation: scaleUp 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+@keyframes iosSheetDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
 }
 
-.animate-bounce-in {
-  animation: bounceIn 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.animate-slide-up {
-  animation: slideUp 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+@keyframes backdropFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
-.toast-fade-out {
-  animation: fadeOut 0.25s ease-in forwards;
-}
+.animate-fade-in { animation: fadeIn 0.22s ease-out; }
+.animate-scale-up { animation: scaleUp 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.animate-slide-up { animation: slideUp 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.toast-fade-out { animation: fadeOut 0.25s ease-in forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -1390,11 +1528,6 @@ input:checked + .slider::before {
 
 @keyframes scaleUp {
   from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes bounceIn {
-  from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
 }
 

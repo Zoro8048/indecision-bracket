@@ -1,5 +1,5 @@
 /**
- * TreeModal - Visual Tournament Bracket Tree.
+ * TreeModal - Visual Tournament Bracket Tree Sheet (iOS Style).
  */
 export class TreeModal {
   constructor({ modalContainer, audioService, eventBus }) {
@@ -39,14 +39,24 @@ export class TreeModal {
     }).join('');
 
     this.container.innerHTML = `
-      <div class="modal-backdrop animate-fade-in" id="tree-backdrop">
-        <div class="modal-dialog tree-dialog animate-scale-up">
-          <div class="modal-header">
-            <h3>Tournament Bracket Tree</h3>
-            <button class="modal-close-btn" id="btn-close-tree">✕</button>
+      <div class="modal-backdrop" id="tree-backdrop">
+        <div class="ios-sheet animate-sheet-up" id="tree-sheet">
+          <div class="sheet-grabber-zone">
+            <div class="sheet-grabber"></div>
           </div>
-          <div class="tree-scroll-container">
-            <div class="tree-grid">${roundsHtml}</div>
+
+          <div class="sheet-header">
+            <div class="sheet-title-group">
+              <h3 class="sheet-title">Tournament Tree</h3>
+              <p class="sheet-subtitle">Interactive bracket path to the finals</p>
+            </div>
+            <button class="sheet-close-btn" id="btn-close-tree">✕</button>
+          </div>
+
+          <div class="sheet-scrollable-body">
+            <div class="tree-scroll-container">
+              <div class="tree-grid">${roundsHtml}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -55,8 +65,16 @@ export class TreeModal {
     this.container.classList.remove('hidden');
 
     const close = () => {
-      this.container.classList.add('hidden');
-      this.container.innerHTML = '';
+      const sheet = this.container.querySelector('.ios-sheet');
+      const backdrop = this.container.querySelector('.modal-backdrop');
+
+      if (sheet) sheet.classList.add('ios-sheet-closing');
+      if (backdrop) backdrop.classList.add('backdrop-closing');
+
+      setTimeout(() => {
+        this.container.classList.add('hidden');
+        this.container.innerHTML = '';
+      }, 220);
     };
 
     const btnClose = this.container.querySelector('#btn-close-tree');

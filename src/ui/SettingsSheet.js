@@ -1,12 +1,13 @@
 /**
- * PoolEditorModal - Management dialog for pools, custom items, cooldowns, and settings.
+ * SettingsSheet - iOS-Style Native Bottom Sheet for Managing Pool Items & App Preferences.
  */
-export class PoolEditorModal {
-  constructor({ modalContainer, storageManager, cooldownManager, audioService, eventBus }) {
-    this.container = modalContainer;
+export class SettingsSheet {
+  constructor({ container, storageManager, cooldownManager, audioService, hapticsService, eventBus }) {
+    this.container = container;
     this.storage = storageManager;
     this.cooldown = cooldownManager;
     this.audio = audioService;
+    this.haptics = hapticsService;
     this.bus = eventBus;
   }
 
@@ -15,115 +16,133 @@ export class PoolEditorModal {
     this.container.classList.remove('hidden');
   }
 
+  close() {
+    const sheet = this.container.querySelector('.ios-sheet');
+    const backdrop = this.container.querySelector('.modal-backdrop');
+
+    if (sheet) sheet.classList.add('ios-sheet-closing');
+    if (backdrop) backdrop.classList.add('backdrop-closing');
+
+    setTimeout(() => {
+      this.container.classList.add('hidden');
+      this.container.innerHTML = '';
+      this.bus.emit('pool:updated');
+    }, 220);
+  }
+
   render() {
-    const pools = this.storage.getPools();
     const selectedPoolId = this.storage.getSelectedPoolId();
     const selectedPool = this.storage.getPool(selectedPoolId);
     const settings = this.storage.getSettings();
 
-    // Check cooldown status for current pool items
     const { available, coolingDown } = this.cooldown.partition(
       selectedPool.items,
       settings.cooldownDays
     );
-
-    const poolsOptions = pools.map(p => `
-      <option value="${p.id}" ${p.id === selectedPoolId ? 'selected' : ''}>
-        ${p.emoji || '📁'} ${p.name} (${p.items.length} items)
-      </option>
-    `).join('');
 
     const availableItemsHtml = available.map(item => `
       <div class="item-chip">
         <span class="item-emoji">${item.emoji || '✨'}</span>
         <span class="item-name">${item.name}</span>
         ${item.tag ? `<span class="item-tag">${item.tag}</span>` : ''}
-        <button class="chip-delete-btn" data-item-id="${item.id}" title="Remove item">✕</button>
+        <button class="chip-delete-btn" data-item-id="${item.id}" title="Remove item" aria-label="Remove ${item.name}">✕</button>
       </div>
     `).join('');
 
-    const coolingItemsHtml = coolingDown.length === 0 
-      ? '<div class="empty-hint">No items currently on cooldown.</div>'
+    const coolingItemsHtml = coolingDown.length === 0
+      ? '<div class="empty-hint">No choices currently on cooldown.</div>'
       : coolingDown.map(item => `
         <div class="item-chip chip-cooldown">
           <span class="item-emoji">${item.emoji || '✨'}</span>
           <span class="item-name">${item.name}</span>
           <span class="cooldown-badge">⏳ ${item.remaining}</span>
-          <button class="chip-restore-btn" data-item-id="${item.id}" title="Reset cooldown">↺</button>
+          <button class="chip-restore-btn" data-item-id="${item.id}" title="Clear cooldown" aria-label="Clear cooldown for ${item.name}">↺</button>
         </div>
       `).join('');
 
     this.container.innerHTML = `
-      <div class="modal-backdrop animate-fade-in" id="settings-backdrop">
-        <div class="modal-dialog settings-dialog animate-scale-up">
-          <div class="modal-header">
-            <h3>⚙️ Preferences & Pools</h3>
-            <button class="modal-close-btn" id="btn-close-settings">✕</button>
+      <div class="modal-backdrop" id="settings-backdrop">
+        <div class="ios-sheet animate-sheet-up" id="settings-sheet">
+          <!-- iOS Grabber Bar -->
+          <div class="sheet-grabber-zone">
+            <div class="sheet-grabber"></div>
           </div>
 
-          <div class="settings-body">
-            <!-- Pool Selector Section -->
-            <div class="settings-section">
-              <label class="settings-label">Active Decision Pool</label>
-              <div class="pool-select-row">
-                <select class="form-select" id="select-active-pool">
-                  ${poolsOptions}
-                </select>
-                <button class="btn btn-secondary btn-sm" id="btn-new-pool">+ New Pool</button>
-              </div>
+          <div class="sheet-header">
+            <div class="sheet-title-group">
+              <h3 class="sheet-title">Library & Rules</h3>
+              <p class="sheet-subtitle">Managing "${selectedPool.emoji || '🎯'} ${selectedPool.name}"</p>
             </div>
+            <button class="sheet-close-btn" id="btn-close-settings" aria-label="Close">✕</button>
+          </div>
 
-            <!-- Add Item to Pool Form -->
-            <div class="settings-section">
-              <label class="settings-label">Add Item to "${selectedPool.name}"</label>
-              <form class="add-item-form" id="form-add-item">
-                <input type="text" class="form-input input-emoji" id="input-item-emoji" placeholder="🍕" maxlength="4" style="width: 50px; text-align: center;">
-                <input type="text" class="form-input" id="input-item-name" placeholder="Item name (e.g. Thai Bistro)" required style="flex: 1;">
-                <input type="text" class="form-input input-tag" id="input-item-tag" placeholder="Tag (optional)" style="width: 100px;">
+          <div class="sheet-scrollable-body">
+            <!-- Section 1: Add New Choice -->
+            <div class="sheet-section">
+              <span class="sheet-section-title">Add Choice to "${selectedPool.name}"</span>
+              <form class="add-item-card" id="form-add-item">
+                <input type="text" class="ios-input input-emoji" id="input-item-emoji" placeholder="🍕" maxlength="4" style="width: 52px; text-align: center;">
+                <input type="text" class="ios-input input-name" id="input-item-name" placeholder="Choice name (e.g. Ramen)" required style="flex: 1;">
+                <input type="text" class="ios-input input-tag" id="input-item-tag" placeholder="Tag" style="width: 90px;">
                 <button type="submit" class="btn btn-primary btn-sm">Add</button>
               </form>
             </div>
 
-            <!-- Active Items List -->
-            <div class="settings-section">
-              <label class="settings-label">Eligible Items (${available.length})</label>
-              <div class="chips-container">${availableItemsHtml || '<div class="empty-hint">No eligible items.</div>'}</div>
+            <!-- Section 2: Active Pool Items -->
+            <div class="sheet-section">
+              <div class="section-title-row">
+                <span class="sheet-section-title">Eligible Choices (${available.length})</span>
+                <span class="section-subtext">Active for tournament</span>
+              </div>
+              <div class="chips-container">${availableItemsHtml || '<div class="empty-hint">No choices yet. Add one above!</div>'}</div>
             </div>
 
-            <!-- Cooldown Section -->
-            <div class="settings-section">
-              <div class="section-header-split">
-                <label class="settings-label">On Cooldown (${coolingDown.length})</label>
+            <!-- Section 3: Cooldown System -->
+            <div class="sheet-section">
+              <div class="section-title-row">
+                <span class="sheet-section-title">On Cooldown (${coolingDown.length})</span>
                 ${coolingDown.length > 0 ? '<button class="btn-link" id="btn-clear-all-cooldowns">Clear All</button>' : ''}
               </div>
               <div class="chips-container">${coolingItemsHtml}</div>
             </div>
 
-            <!-- Preferences & Rules -->
-            <div class="settings-section">
-              <label class="settings-label">Rules & Feedback</label>
-              <div class="setting-toggle-row">
-                <span>Cooldown Window</span>
-                <div class="range-wrapper">
-                  <input type="range" id="input-cooldown-days" min="0" max="14" value="${settings.cooldownDays}" step="1">
-                  <span id="label-cooldown-days">${settings.cooldownDays === 0 ? 'Off' : settings.cooldownDays + ' days'}</span>
+            <!-- Section 4: Rules & System Preferences -->
+            <div class="sheet-section">
+              <span class="sheet-section-title">Rules & Feedback</span>
+              <div class="ios-settings-card">
+                <div class="ios-setting-row">
+                  <div class="setting-text">
+                    <span class="setting-label">Cooldown Window</span>
+                    <span class="setting-desc">Days a winner rests before re-entering</span>
+                  </div>
+                  <div class="range-wrapper">
+                    <input type="range" id="input-cooldown-days" min="0" max="14" value="${settings.cooldownDays}" step="1">
+                    <span class="range-badge" id="label-cooldown-days">${settings.cooldownDays === 0 ? 'Off' : settings.cooldownDays + 'd'}</span>
+                  </div>
                 </div>
-              </div>
-              <div class="setting-toggle-row">
-                <span>Sound & Fanfare</span>
-                <label class="switch">
-                  <input type="checkbox" id="toggle-sound" ${settings.soundEnabled ? 'checked' : ''}>
-                  <span class="slider"></span>
-                </label>
+
+                <div class="ios-setting-row">
+                  <div class="setting-text">
+                    <span class="setting-label">Sound & Fanfare</span>
+                    <span class="setting-desc">Tactile Web Audio synthesizers</span>
+                  </div>
+                  <label class="ios-switch">
+                    <input type="checkbox" id="toggle-sound" ${settings.soundEnabled ? 'checked' : ''}>
+                    <span class="ios-switch-slider"></span>
+                  </label>
+                </div>
               </div>
             </div>
 
-            <!-- Data Sovereignty / Backup -->
-            <div class="settings-section settings-backup-row">
-              <button class="btn btn-secondary btn-sm" id="btn-export-backup">💾 Export JSON</button>
-              <button class="btn btn-secondary btn-sm" id="btn-import-backup">📥 Import JSON</button>
-              <button class="btn btn-ghost btn-sm text-danger" id="btn-factory-reset">Reset Defaults</button>
-              <input type="file" id="file-import-json" accept=".json" style="display: none;">
+            <!-- Section 5: Data Sovereignty / Backup -->
+            <div class="sheet-section">
+              <span class="sheet-section-title">Data Backup & Export</span>
+              <div class="sheet-button-grid">
+                <button class="btn btn-secondary btn-sm" id="btn-export-backup">💾 Export JSON</button>
+                <button class="btn btn-secondary btn-sm" id="btn-import-backup">📥 Import JSON</button>
+                <button class="btn btn-ghost btn-sm text-danger" id="btn-factory-reset">Reset Presets</button>
+                <input type="file" id="file-import-json" accept=".json" style="display: none;">
+              </div>
             </div>
           </div>
         </div>
@@ -136,8 +155,6 @@ export class PoolEditorModal {
   _bindEvents(selectedPool) {
     const backdrop = this.container.querySelector('#settings-backdrop');
     const btnClose = this.container.querySelector('#btn-close-settings');
-    const poolSelect = this.container.querySelector('#select-active-pool');
-    const btnNewPool = this.container.querySelector('#btn-new-pool');
     const formAddItem = this.container.querySelector('#form-add-item');
     const rangeCooldown = this.container.querySelector('#input-cooldown-days');
     const labelCooldown = this.container.querySelector('#label-cooldown-days');
@@ -148,40 +165,16 @@ export class PoolEditorModal {
     const fileInput = this.container.querySelector('#file-import-json');
     const btnReset = this.container.querySelector('#btn-factory-reset');
 
-    const close = () => {
-      this.container.classList.add('hidden');
-      this.container.innerHTML = '';
-      this.bus.emit('pool:updated');
-    };
-
-    if (btnClose) btnClose.addEventListener('click', close);
     if (backdrop) {
       backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) close();
+        if (e.target === backdrop) this.close();
       });
     }
 
-    if (poolSelect) {
-      poolSelect.addEventListener('change', (e) => {
-        this.storage.setSelectedPoolId(e.target.value);
-        this.render();
-      });
-    }
-
-    if (btnNewPool) {
-      btnNewPool.addEventListener('click', () => {
-        const name = prompt('Enter new pool name (e.g. Favorite Coffee Spots):');
-        if (name && name.trim()) {
-          const newPool = {
-            id: `pool_${Date.now()}`,
-            name: name.trim(),
-            emoji: '🎯',
-            items: [],
-          };
-          this.storage.savePool(newPool);
-          this.storage.setSelectedPoolId(newPool.id);
-          this.render();
-        }
+    if (btnClose) {
+      btnClose.addEventListener('click', () => {
+        this.audio.playTap();
+        this.close();
       });
     }
 
@@ -200,27 +193,29 @@ export class PoolEditorModal {
             tag: tag || undefined,
           });
           this.storage.savePool(selectedPool);
+          this.audio.playTap();
+          this.haptics.tap();
           this.render();
         }
       });
     }
 
-    // Delete item chip
-    this.container.querySelectorAll('.chip-delete-btn').forEach(btn => {
+    this.container.querySelectorAll('.chip-delete-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const itemId = btn.dataset.itemId;
         selectedPool.items = selectedPool.items.filter(i => i.id !== itemId);
         this.storage.savePool(selectedPool);
+        this.audio.playTap();
         this.render();
       });
     });
 
-    // Restore single cooldown
-    this.container.querySelectorAll('.chip-restore-btn').forEach(btn => {
+    this.container.querySelectorAll('.chip-restore-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const itemId = btn.dataset.itemId;
         this.cooldown.clearCooldown(itemId);
         this.storage.save();
+        this.audio.playTap();
         this.render();
       });
     });
@@ -229,6 +224,7 @@ export class PoolEditorModal {
       btnClearAllCooldowns.addEventListener('click', () => {
         this.cooldown.clearAll();
         this.storage.clearHistory();
+        this.audio.playTap();
         this.render();
       });
     }
@@ -236,7 +232,7 @@ export class PoolEditorModal {
     if (rangeCooldown) {
       rangeCooldown.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
-        labelCooldown.textContent = val === 0 ? 'Off' : `${val} days`;
+        labelCooldown.textContent = val === 0 ? 'Off' : `${val}d`;
         this.storage.updateSettings({ cooldownDays: val });
       });
     }
@@ -245,6 +241,7 @@ export class PoolEditorModal {
       toggleSound.addEventListener('change', (e) => {
         this.storage.updateSettings({ soundEnabled: e.target.checked });
         this.audio.setEnabled(e.target.checked);
+        if (e.target.checked) this.audio.playTap();
       });
     }
 

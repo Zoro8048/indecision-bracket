@@ -1391,7 +1391,7 @@
 
   // --- Module: src/ui/WinnerModal.js ---
   /**
-   * WinnerModal - Celebratory Champion Reveal Dialog.
+   * WinnerModal - Celebratory Champion Reveal Bottom Sheet (iOS Style).
    */
   class WinnerModal {
     constructor({ modalContainer, confetti, audioService, hapticsService, eventBus }) {
@@ -1412,9 +1412,13 @@
       };
   
       this.container.innerHTML = `
-        <div class="modal-backdrop animate-fade-in" id="winner-backdrop">
-          <div class="modal-dialog winner-dialog animate-bounce-in">
-            <button class="modal-close-btn" id="btn-close-winner" aria-label="Close">✕</button>
+        <div class="modal-backdrop" id="winner-backdrop">
+          <div class="ios-sheet winner-sheet animate-sheet-up">
+            <div class="sheet-grabber-zone">
+              <div class="sheet-grabber"></div>
+            </div>
+  
+            <button class="sheet-close-btn" id="btn-close-winner" aria-label="Close">✕</button>
   
             <div class="winner-crown">👑</div>
             <div class="winner-badge">${modeLabels[mode] || 'Winner Picked!'}</div>
@@ -1430,7 +1434,7 @@
                 <span class="btn-icon">✅</span> Lock In & Add Cooldown
               </button>
               <button class="btn btn-secondary" id="btn-share-pick">
-                <span class="btn-icon">📋</span> Copy to Text
+                <span class="btn-icon">📋</span> Copy to Share
               </button>
               <button class="btn btn-ghost" id="btn-reroll">
                 <span class="btn-icon">🔄</span> Play Again
@@ -1444,6 +1448,20 @@
       this._bindEvents(winner);
     }
   
+    close() {
+      this.confetti.stop();
+      const sheet = this.container.querySelector('.ios-sheet');
+      const backdrop = this.container.querySelector('.modal-backdrop');
+  
+      if (sheet) sheet.classList.add('ios-sheet-closing');
+      if (backdrop) backdrop.classList.add('backdrop-closing');
+  
+      setTimeout(() => {
+        this.container.classList.add('hidden');
+        this.container.innerHTML = '';
+      }, 220);
+    }
+  
     _bindEvents(winner) {
       const backdrop = this.container.querySelector('#winner-backdrop');
       const btnClose = this.container.querySelector('#btn-close-winner');
@@ -1451,16 +1469,10 @@
       const btnShare = this.container.querySelector('#btn-share-pick');
       const btnReroll = this.container.querySelector('#btn-reroll');
   
-      const close = () => {
-        this.confetti.stop();
-        this.container.classList.add('hidden');
-        this.container.innerHTML = '';
-      };
-  
-      if (btnClose) btnClose.addEventListener('click', close);
+      if (btnClose) btnClose.addEventListener('click', () => this.close());
       if (backdrop) {
         backdrop.addEventListener('click', (e) => {
-          if (e.target === backdrop) close();
+          if (e.target === backdrop) this.close();
         });
       }
   
@@ -1469,21 +1481,21 @@
           this.audio.playTap();
           this.haptics.tap();
           this.bus.emit('cooldown:record', winner);
-          close();
-          this.bus.emit('toast', `Recorded! "${winner.name}" is now on cooldown.`);
+          this.close();
+          this.bus.emit('toast', `Locked in! "${winner.name}" is on cooldown.`);
         });
       }
   
       if (btnShare) {
         btnShare.addEventListener('click', async () => {
           this.audio.playTap();
-          const text = `Tonight's pick: ${winner.emoji || '✨'} ${winner.name}! (Decided with IndecisionBracket)`;
+          const text = `Tonight's decision: ${winner.emoji || '✨'} ${winner.name}! (Decided with IndecisionBracket)`;
           try {
             if (navigator.clipboard) {
               await navigator.clipboard.writeText(text);
-              btnShare.innerHTML = `<span class="btn-icon">✓</span> Copied!`;
+              btnShare.innerHTML = `<span class="btn-icon">✓</span> Copied to Clipboard!`;
               setTimeout(() => {
-                if (btnShare) btnShare.innerHTML = `<span class="btn-icon">📋</span> Copy to Text`;
+                if (btnShare) btnShare.innerHTML = `<span class="btn-icon">📋</span> Copy to Share`;
               }, 2000);
             }
           } catch (_) {}
@@ -1493,7 +1505,7 @@
       if (btnReroll) {
         btnReroll.addEventListener('click', () => {
           this.audio.playTap();
-          close();
+          this.close();
           this.bus.emit('mode:restart');
         });
       }
@@ -1502,7 +1514,7 @@
 
   // --- Module: src/ui/TreeModal.js ---
   /**
-   * TreeModal - Visual Tournament Bracket Tree.
+   * TreeModal - Visual Tournament Bracket Tree Sheet (iOS Style).
    */
   class TreeModal {
     constructor({ modalContainer, audioService, eventBus }) {
@@ -1542,14 +1554,24 @@
       }).join('');
   
       this.container.innerHTML = `
-        <div class="modal-backdrop animate-fade-in" id="tree-backdrop">
-          <div class="modal-dialog tree-dialog animate-scale-up">
-            <div class="modal-header">
-              <h3>Tournament Bracket Tree</h3>
-              <button class="modal-close-btn" id="btn-close-tree">✕</button>
+        <div class="modal-backdrop" id="tree-backdrop">
+          <div class="ios-sheet animate-sheet-up" id="tree-sheet">
+            <div class="sheet-grabber-zone">
+              <div class="sheet-grabber"></div>
             </div>
-            <div class="tree-scroll-container">
-              <div class="tree-grid">${roundsHtml}</div>
+  
+            <div class="sheet-header">
+              <div class="sheet-title-group">
+                <h3 class="sheet-title">Tournament Tree</h3>
+                <p class="sheet-subtitle">Interactive bracket path to the finals</p>
+              </div>
+              <button class="sheet-close-btn" id="btn-close-tree">✕</button>
+            </div>
+  
+            <div class="sheet-scrollable-body">
+              <div class="tree-scroll-container">
+                <div class="tree-grid">${roundsHtml}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1558,8 +1580,16 @@
       this.container.classList.remove('hidden');
   
       const close = () => {
-        this.container.classList.add('hidden');
-        this.container.innerHTML = '';
+        const sheet = this.container.querySelector('.ios-sheet');
+        const backdrop = this.container.querySelector('.modal-backdrop');
+  
+        if (sheet) sheet.classList.add('ios-sheet-closing');
+        if (backdrop) backdrop.classList.add('backdrop-closing');
+  
+        setTimeout(() => {
+          this.container.classList.add('hidden');
+          this.container.innerHTML = '';
+        }, 220);
       };
   
       const btnClose = this.container.querySelector('#btn-close-tree');
@@ -1581,16 +1611,18 @@
     }
   }
 
-  // --- Module: src/ui/PoolEditorModal.js ---
+  // --- Module: src/ui/PoolPickerSheet.js ---
   /**
-   * PoolEditorModal - Management dialog for pools, custom items, cooldowns, and settings.
+   * PoolPickerSheet - iOS-Style Native Bottom Sheet for Quick Category Switching.
+   * De-dupes category picking from settings: lets users switch pools in 1 tap,
+   * or quickly create a new category.
    */
-  class PoolEditorModal {
-    constructor({ modalContainer, storageManager, cooldownManager, audioService, eventBus }) {
-      this.container = modalContainer;
+  class PoolPickerSheet {
+    constructor({ container, storageManager, audioService, hapticsService, eventBus }) {
+      this.container = container;
       this.storage = storageManager;
-      this.cooldown = cooldownManager;
       this.audio = audioService;
+      this.haptics = hapticsService;
       this.bus = eventBus;
     }
   
@@ -1599,115 +1631,278 @@
       this.container.classList.remove('hidden');
     }
   
+    close() {
+      const sheet = this.container.querySelector('.ios-sheet');
+      const backdrop = this.container.querySelector('.modal-backdrop');
+  
+      if (sheet) sheet.classList.add('ios-sheet-closing');
+      if (backdrop) backdrop.classList.add('backdrop-closing');
+  
+      setTimeout(() => {
+        this.container.classList.add('hidden');
+        this.container.innerHTML = '';
+      }, 220);
+    }
+  
     render() {
       const pools = this.storage.getPools();
+      const selectedPoolId = this.storage.getSelectedPoolId();
+  
+      const poolRowsHtml = pools.map((p) => {
+        const isSelected = p.id === selectedPoolId;
+        return `
+          <div class="ios-list-row ${isSelected ? 'row-selected' : ''}" data-pool-id="${p.id}" role="button" tabindex="0">
+            <div class="row-left">
+              <span class="row-emoji">${p.emoji || '🎯'}</span>
+              <div class="row-text">
+                <span class="row-title">${p.name}</span>
+                <span class="row-subtitle">${p.items.length} choices available</span>
+              </div>
+            </div>
+            <div class="row-right">
+              ${isSelected ? '<span class="ios-check">✓</span>' : '<span class="row-chevron">›</span>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+  
+      this.container.innerHTML = `
+        <div class="modal-backdrop" id="pool-picker-backdrop">
+          <div class="ios-sheet animate-sheet-up" id="pool-picker-sheet">
+            <!-- iOS Sheet Grabber Bar -->
+            <div class="sheet-grabber-zone" id="grabber-zone">
+              <div class="sheet-grabber"></div>
+            </div>
+  
+            <div class="sheet-header">
+              <div class="sheet-title-group">
+                <h3 class="sheet-title">Select Category</h3>
+                <p class="sheet-subtitle">Choose what you are deciding today</p>
+              </div>
+              <button class="sheet-close-btn" id="btn-close-picker" aria-label="Close">✕</button>
+            </div>
+  
+            <div class="sheet-scrollable-body">
+              <div class="ios-list-group">
+                ${poolRowsHtml}
+              </div>
+  
+              <div class="sheet-action-group">
+                <button class="btn btn-secondary btn-block" id="btn-create-category">
+                  <span class="btn-icon">+</span> Create New Category
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+  
+      this._bindEvents();
+    }
+  
+    _bindEvents() {
+      const backdrop = this.container.querySelector('#pool-picker-backdrop');
+      const btnClose = this.container.querySelector('#btn-close-picker');
+      const btnCreate = this.container.querySelector('#btn-create-category');
+      const rows = this.container.querySelectorAll('.ios-list-row');
+  
+      if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) {
+            this.close();
+          }
+        });
+      }
+  
+      if (btnClose) {
+        btnClose.addEventListener('click', () => {
+          this.audio.playTap();
+          this.close();
+        });
+      }
+  
+      // Quick select pool on row tap
+      rows.forEach((row) => {
+        row.addEventListener('click', () => {
+          const poolId = row.dataset.poolId;
+          if (poolId) {
+            this.audio.playTap();
+            this.haptics.tap();
+            this.storage.setSelectedPoolId(poolId);
+            this.bus.emit('pool:updated');
+            this.close();
+          }
+        });
+      });
+  
+      if (btnCreate) {
+        btnCreate.addEventListener('click', () => {
+          this.audio.playTap();
+          const name = prompt('Enter name for the new category (e.g. Lunch Spots, Board Games):');
+          if (name && name.trim()) {
+            const newPool = {
+              id: `pool_${Date.now()}`,
+              name: name.trim(),
+              emoji: '🎯',
+              items: [],
+            };
+            this.storage.savePool(newPool);
+            this.storage.setSelectedPoolId(newPool.id);
+            this.bus.emit('pool:updated');
+            this.close();
+            this.bus.emit('open:settings');
+          }
+        });
+      }
+    }
+  }
+
+  // --- Module: src/ui/SettingsSheet.js ---
+  /**
+   * SettingsSheet - iOS-Style Native Bottom Sheet for Managing Pool Items & App Preferences.
+   */
+  class SettingsSheet {
+    constructor({ container, storageManager, cooldownManager, audioService, hapticsService, eventBus }) {
+      this.container = container;
+      this.storage = storageManager;
+      this.cooldown = cooldownManager;
+      this.audio = audioService;
+      this.haptics = hapticsService;
+      this.bus = eventBus;
+    }
+  
+    show() {
+      this.render();
+      this.container.classList.remove('hidden');
+    }
+  
+    close() {
+      const sheet = this.container.querySelector('.ios-sheet');
+      const backdrop = this.container.querySelector('.modal-backdrop');
+  
+      if (sheet) sheet.classList.add('ios-sheet-closing');
+      if (backdrop) backdrop.classList.add('backdrop-closing');
+  
+      setTimeout(() => {
+        this.container.classList.add('hidden');
+        this.container.innerHTML = '';
+        this.bus.emit('pool:updated');
+      }, 220);
+    }
+  
+    render() {
       const selectedPoolId = this.storage.getSelectedPoolId();
       const selectedPool = this.storage.getPool(selectedPoolId);
       const settings = this.storage.getSettings();
   
-      // Check cooldown status for current pool items
       const { available, coolingDown } = this.cooldown.partition(
         selectedPool.items,
         settings.cooldownDays
       );
-  
-      const poolsOptions = pools.map(p => `
-        <option value="${p.id}" ${p.id === selectedPoolId ? 'selected' : ''}>
-          ${p.emoji || '📁'} ${p.name} (${p.items.length} items)
-        </option>
-      `).join('');
   
       const availableItemsHtml = available.map(item => `
         <div class="item-chip">
           <span class="item-emoji">${item.emoji || '✨'}</span>
           <span class="item-name">${item.name}</span>
           ${item.tag ? `<span class="item-tag">${item.tag}</span>` : ''}
-          <button class="chip-delete-btn" data-item-id="${item.id}" title="Remove item">✕</button>
+          <button class="chip-delete-btn" data-item-id="${item.id}" title="Remove item" aria-label="Remove ${item.name}">✕</button>
         </div>
       `).join('');
   
-      const coolingItemsHtml = coolingDown.length === 0 
-        ? '<div class="empty-hint">No items currently on cooldown.</div>'
+      const coolingItemsHtml = coolingDown.length === 0
+        ? '<div class="empty-hint">No choices currently on cooldown.</div>'
         : coolingDown.map(item => `
           <div class="item-chip chip-cooldown">
             <span class="item-emoji">${item.emoji || '✨'}</span>
             <span class="item-name">${item.name}</span>
             <span class="cooldown-badge">⏳ ${item.remaining}</span>
-            <button class="chip-restore-btn" data-item-id="${item.id}" title="Reset cooldown">↺</button>
+            <button class="chip-restore-btn" data-item-id="${item.id}" title="Clear cooldown" aria-label="Clear cooldown for ${item.name}">↺</button>
           </div>
         `).join('');
   
       this.container.innerHTML = `
-        <div class="modal-backdrop animate-fade-in" id="settings-backdrop">
-          <div class="modal-dialog settings-dialog animate-scale-up">
-            <div class="modal-header">
-              <h3>⚙️ Preferences & Pools</h3>
-              <button class="modal-close-btn" id="btn-close-settings">✕</button>
+        <div class="modal-backdrop" id="settings-backdrop">
+          <div class="ios-sheet animate-sheet-up" id="settings-sheet">
+            <!-- iOS Grabber Bar -->
+            <div class="sheet-grabber-zone">
+              <div class="sheet-grabber"></div>
             </div>
   
-            <div class="settings-body">
-              <!-- Pool Selector Section -->
-              <div class="settings-section">
-                <label class="settings-label">Active Decision Pool</label>
-                <div class="pool-select-row">
-                  <select class="form-select" id="select-active-pool">
-                    ${poolsOptions}
-                  </select>
-                  <button class="btn btn-secondary btn-sm" id="btn-new-pool">+ New Pool</button>
-                </div>
+            <div class="sheet-header">
+              <div class="sheet-title-group">
+                <h3 class="sheet-title">Library & Rules</h3>
+                <p class="sheet-subtitle">Managing "${selectedPool.emoji || '🎯'} ${selectedPool.name}"</p>
               </div>
+              <button class="sheet-close-btn" id="btn-close-settings" aria-label="Close">✕</button>
+            </div>
   
-              <!-- Add Item to Pool Form -->
-              <div class="settings-section">
-                <label class="settings-label">Add Item to "${selectedPool.name}"</label>
-                <form class="add-item-form" id="form-add-item">
-                  <input type="text" class="form-input input-emoji" id="input-item-emoji" placeholder="🍕" maxlength="4" style="width: 50px; text-align: center;">
-                  <input type="text" class="form-input" id="input-item-name" placeholder="Item name (e.g. Thai Bistro)" required style="flex: 1;">
-                  <input type="text" class="form-input input-tag" id="input-item-tag" placeholder="Tag (optional)" style="width: 100px;">
+            <div class="sheet-scrollable-body">
+              <!-- Section 1: Add New Choice -->
+              <div class="sheet-section">
+                <span class="sheet-section-title">Add Choice to "${selectedPool.name}"</span>
+                <form class="add-item-card" id="form-add-item">
+                  <input type="text" class="ios-input input-emoji" id="input-item-emoji" placeholder="🍕" maxlength="4" style="width: 52px; text-align: center;">
+                  <input type="text" class="ios-input input-name" id="input-item-name" placeholder="Choice name (e.g. Ramen)" required style="flex: 1;">
+                  <input type="text" class="ios-input input-tag" id="input-item-tag" placeholder="Tag" style="width: 90px;">
                   <button type="submit" class="btn btn-primary btn-sm">Add</button>
                 </form>
               </div>
   
-              <!-- Active Items List -->
-              <div class="settings-section">
-                <label class="settings-label">Eligible Items (${available.length})</label>
-                <div class="chips-container">${availableItemsHtml || '<div class="empty-hint">No eligible items.</div>'}</div>
+              <!-- Section 2: Active Pool Items -->
+              <div class="sheet-section">
+                <div class="section-title-row">
+                  <span class="sheet-section-title">Eligible Choices (${available.length})</span>
+                  <span class="section-subtext">Active for tournament</span>
+                </div>
+                <div class="chips-container">${availableItemsHtml || '<div class="empty-hint">No choices yet. Add one above!</div>'}</div>
               </div>
   
-              <!-- Cooldown Section -->
-              <div class="settings-section">
-                <div class="section-header-split">
-                  <label class="settings-label">On Cooldown (${coolingDown.length})</label>
+              <!-- Section 3: Cooldown System -->
+              <div class="sheet-section">
+                <div class="section-title-row">
+                  <span class="sheet-section-title">On Cooldown (${coolingDown.length})</span>
                   ${coolingDown.length > 0 ? '<button class="btn-link" id="btn-clear-all-cooldowns">Clear All</button>' : ''}
                 </div>
                 <div class="chips-container">${coolingItemsHtml}</div>
               </div>
   
-              <!-- Preferences & Rules -->
-              <div class="settings-section">
-                <label class="settings-label">Rules & Feedback</label>
-                <div class="setting-toggle-row">
-                  <span>Cooldown Window</span>
-                  <div class="range-wrapper">
-                    <input type="range" id="input-cooldown-days" min="0" max="14" value="${settings.cooldownDays}" step="1">
-                    <span id="label-cooldown-days">${settings.cooldownDays === 0 ? 'Off' : settings.cooldownDays + ' days'}</span>
+              <!-- Section 4: Rules & System Preferences -->
+              <div class="sheet-section">
+                <span class="sheet-section-title">Rules & Feedback</span>
+                <div class="ios-settings-card">
+                  <div class="ios-setting-row">
+                    <div class="setting-text">
+                      <span class="setting-label">Cooldown Window</span>
+                      <span class="setting-desc">Days a winner rests before re-entering</span>
+                    </div>
+                    <div class="range-wrapper">
+                      <input type="range" id="input-cooldown-days" min="0" max="14" value="${settings.cooldownDays}" step="1">
+                      <span class="range-badge" id="label-cooldown-days">${settings.cooldownDays === 0 ? 'Off' : settings.cooldownDays + 'd'}</span>
+                    </div>
                   </div>
-                </div>
-                <div class="setting-toggle-row">
-                  <span>Sound & Fanfare</span>
-                  <label class="switch">
-                    <input type="checkbox" id="toggle-sound" ${settings.soundEnabled ? 'checked' : ''}>
-                    <span class="slider"></span>
-                  </label>
+  
+                  <div class="ios-setting-row">
+                    <div class="setting-text">
+                      <span class="setting-label">Sound & Fanfare</span>
+                      <span class="setting-desc">Tactile Web Audio synthesizers</span>
+                    </div>
+                    <label class="ios-switch">
+                      <input type="checkbox" id="toggle-sound" ${settings.soundEnabled ? 'checked' : ''}>
+                      <span class="ios-switch-slider"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
   
-              <!-- Data Sovereignty / Backup -->
-              <div class="settings-section settings-backup-row">
-                <button class="btn btn-secondary btn-sm" id="btn-export-backup">💾 Export JSON</button>
-                <button class="btn btn-secondary btn-sm" id="btn-import-backup">📥 Import JSON</button>
-                <button class="btn btn-ghost btn-sm text-danger" id="btn-factory-reset">Reset Defaults</button>
-                <input type="file" id="file-import-json" accept=".json" style="display: none;">
+              <!-- Section 5: Data Sovereignty / Backup -->
+              <div class="sheet-section">
+                <span class="sheet-section-title">Data Backup & Export</span>
+                <div class="sheet-button-grid">
+                  <button class="btn btn-secondary btn-sm" id="btn-export-backup">💾 Export JSON</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-import-backup">📥 Import JSON</button>
+                  <button class="btn btn-ghost btn-sm text-danger" id="btn-factory-reset">Reset Presets</button>
+                  <input type="file" id="file-import-json" accept=".json" style="display: none;">
+                </div>
               </div>
             </div>
           </div>
@@ -1720,8 +1915,6 @@
     _bindEvents(selectedPool) {
       const backdrop = this.container.querySelector('#settings-backdrop');
       const btnClose = this.container.querySelector('#btn-close-settings');
-      const poolSelect = this.container.querySelector('#select-active-pool');
-      const btnNewPool = this.container.querySelector('#btn-new-pool');
       const formAddItem = this.container.querySelector('#form-add-item');
       const rangeCooldown = this.container.querySelector('#input-cooldown-days');
       const labelCooldown = this.container.querySelector('#label-cooldown-days');
@@ -1732,40 +1925,16 @@
       const fileInput = this.container.querySelector('#file-import-json');
       const btnReset = this.container.querySelector('#btn-factory-reset');
   
-      const close = () => {
-        this.container.classList.add('hidden');
-        this.container.innerHTML = '';
-        this.bus.emit('pool:updated');
-      };
-  
-      if (btnClose) btnClose.addEventListener('click', close);
       if (backdrop) {
         backdrop.addEventListener('click', (e) => {
-          if (e.target === backdrop) close();
+          if (e.target === backdrop) this.close();
         });
       }
   
-      if (poolSelect) {
-        poolSelect.addEventListener('change', (e) => {
-          this.storage.setSelectedPoolId(e.target.value);
-          this.render();
-        });
-      }
-  
-      if (btnNewPool) {
-        btnNewPool.addEventListener('click', () => {
-          const name = prompt('Enter new pool name (e.g. Favorite Coffee Spots):');
-          if (name && name.trim()) {
-            const newPool = {
-              id: `pool_${Date.now()}`,
-              name: name.trim(),
-              emoji: '🎯',
-              items: [],
-            };
-            this.storage.savePool(newPool);
-            this.storage.setSelectedPoolId(newPool.id);
-            this.render();
-          }
+      if (btnClose) {
+        btnClose.addEventListener('click', () => {
+          this.audio.playTap();
+          this.close();
         });
       }
   
@@ -1784,27 +1953,29 @@
               tag: tag || undefined,
             });
             this.storage.savePool(selectedPool);
+            this.audio.playTap();
+            this.haptics.tap();
             this.render();
           }
         });
       }
   
-      // Delete item chip
-      this.container.querySelectorAll('.chip-delete-btn').forEach(btn => {
+      this.container.querySelectorAll('.chip-delete-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
           selectedPool.items = selectedPool.items.filter(i => i.id !== itemId);
           this.storage.savePool(selectedPool);
+          this.audio.playTap();
           this.render();
         });
       });
   
-      // Restore single cooldown
-      this.container.querySelectorAll('.chip-restore-btn').forEach(btn => {
+      this.container.querySelectorAll('.chip-restore-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           const itemId = btn.dataset.itemId;
           this.cooldown.clearCooldown(itemId);
           this.storage.save();
+          this.audio.playTap();
           this.render();
         });
       });
@@ -1813,6 +1984,7 @@
         btnClearAllCooldowns.addEventListener('click', () => {
           this.cooldown.clearAll();
           this.storage.clearHistory();
+          this.audio.playTap();
           this.render();
         });
       }
@@ -1820,7 +1992,7 @@
       if (rangeCooldown) {
         rangeCooldown.addEventListener('input', (e) => {
           const val = parseInt(e.target.value, 10);
-          labelCooldown.textContent = val === 0 ? 'Off' : `${val} days`;
+          labelCooldown.textContent = val === 0 ? 'Off' : `${val}d`;
           this.storage.updateSettings({ cooldownDays: val });
         });
       }
@@ -1829,6 +2001,7 @@
         toggleSound.addEventListener('change', (e) => {
           this.storage.updateSettings({ soundEnabled: e.target.checked });
           this.audio.setEnabled(e.target.checked);
+          if (e.target.checked) this.audio.playTap();
         });
       }
   
@@ -2570,6 +2743,7 @@
   
   
   
+  
   class App {
     constructor() {
       this.bus = new EventBus();
@@ -2595,8 +2769,9 @@
       this.soundToggleBtn = document.getElementById('btn-sound-toggle');
       this.toastContainer = document.getElementById('toast-container');
   
-      // UI Modules
+      // UI Modules & Sheets
       this.confetti = new Confetti(this.confettiCanvas);
+  
       this.winnerModal = new WinnerModal({
         modalContainer: this.modalContainer,
         confetti: this.confetti,
@@ -2604,16 +2779,27 @@
         hapticsService: this.haptics,
         eventBus: this.bus,
       });
+  
       this.treeModal = new TreeModal({
         modalContainer: this.modalContainer,
         audioService: this.audio,
         eventBus: this.bus,
       });
-      this.poolEditorModal = new PoolEditorModal({
-        modalContainer: this.modalContainer,
+  
+      this.poolPickerSheet = new PoolPickerSheet({
+        container: this.modalContainer,
+        storageManager: this.storage,
+        audioService: this.audio,
+        hapticsService: this.haptics,
+        eventBus: this.bus,
+      });
+  
+      this.settingsSheet = new SettingsSheet({
+        container: this.modalContainer,
         storageManager: this.storage,
         cooldownManager: this.cooldown,
         audioService: this.audio,
+        hapticsService: this.haptics,
         eventBus: this.bus,
       });
   
@@ -2645,19 +2831,14 @@
     }
   
     _init() {
-      // Sync settings
       const settings = this.storage.getSettings();
       this.audio.setEnabled(settings.soundEnabled);
       this.haptics.setEnabled(settings.hapticsEnabled);
       this._updateSoundIcon(settings.soundEnabled);
   
-      // Event Bus Bindings
       this._bindEvents();
-  
-      // Setup global listeners
       this._bindUI();
   
-      // Start with current pool
       this.refreshPoolDisplay();
       this.startActiveMode();
     }
@@ -2681,6 +2862,10 @@
   
       this.bus.on('mode:restart', () => {
         this.startActiveMode();
+      });
+  
+      this.bus.on('open:settings', () => {
+        this.settingsSheet.show();
       });
   
       this.bus.on('cooldown:record', (winner) => {
@@ -2712,22 +2897,27 @@
         });
       });
   
-      // Header buttons
+      // Header buttons (De-duped!)
+      // 1. Top Category Pill -> Opens Quick Category Picker Sheet
       if (this.poolSelectorBtn) {
         this.poolSelectorBtn.addEventListener('click', () => {
           this.audio.playTap();
-          this.poolEditorModal.show();
+          this.haptics.tap();
+          this.poolPickerSheet.show();
         });
       }
   
+      // 2. Settings Gear -> Opens Settings & Library Sheet
       const btnSettings = document.getElementById('btn-header-settings');
       if (btnSettings) {
         btnSettings.addEventListener('click', () => {
           this.audio.playTap();
-          this.poolEditorModal.show();
+          this.haptics.tap();
+          this.settingsSheet.show();
         });
       }
   
+      // 3. Sound Toggle
       if (this.soundToggleBtn) {
         this.soundToggleBtn.addEventListener('click', () => {
           const settings = this.storage.getSettings();
@@ -2739,7 +2929,7 @@
         });
       }
   
-      // Keyboard shortcuts
+      // Global keyboard shortcuts
       window.addEventListener('keydown', (e) => {
         if (this.activeMode === 'bracket') {
           this.bracketView.handleKeyDown(e);
@@ -2773,7 +2963,6 @@
   
       const { available } = this.cooldown.partition(pool.items, settings.cooldownDays);
   
-      // If cooldown filtered out everything, fall back to entire pool so user is never blocked
       return available.length >= 2 ? available : pool.items;
     }
   
@@ -2792,15 +2981,15 @@
         this.viewContainer.innerHTML = `
           <div class="empty-state animate-fade-in">
             <div class="empty-icon">📝</div>
-            <h3>Pool has too few items</h3>
-            <p>Please add at least 2 items to this category in Settings.</p>
+            <h3>Pool has too few choices</h3>
+            <p>Please add at least 2 choices in Settings to begin.</p>
             <button class="btn btn-primary" id="btn-empty-open-settings" style="margin-top: 1rem;">
               Open Settings
             </button>
           </div>
         `;
         const btn = this.viewContainer.querySelector('#btn-empty-open-settings');
-        if (btn) btn.addEventListener('click', () => this.poolEditorModal.show());
+        if (btn) btn.addEventListener('click', () => this.settingsSheet.show());
         return;
       }
   
@@ -2823,8 +3012,8 @@
       this.toastContainer.appendChild(toast);
       setTimeout(() => {
         toast.classList.add('toast-fade-out');
-        setTimeout(() => toast.remove(), 300);
-      }, 2800);
+        setTimeout(() => toast.remove(), 260);
+      }, 2600);
     }
   }
   

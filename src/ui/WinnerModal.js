@@ -1,5 +1,5 @@
 /**
- * WinnerModal - Celebratory Champion Reveal Dialog.
+ * WinnerModal - Celebratory Champion Reveal Bottom Sheet (iOS Style).
  */
 export class WinnerModal {
   constructor({ modalContainer, confetti, audioService, hapticsService, eventBus }) {
@@ -20,9 +20,13 @@ export class WinnerModal {
     };
 
     this.container.innerHTML = `
-      <div class="modal-backdrop animate-fade-in" id="winner-backdrop">
-        <div class="modal-dialog winner-dialog animate-bounce-in">
-          <button class="modal-close-btn" id="btn-close-winner" aria-label="Close">✕</button>
+      <div class="modal-backdrop" id="winner-backdrop">
+        <div class="ios-sheet winner-sheet animate-sheet-up">
+          <div class="sheet-grabber-zone">
+            <div class="sheet-grabber"></div>
+          </div>
+
+          <button class="sheet-close-btn" id="btn-close-winner" aria-label="Close">✕</button>
 
           <div class="winner-crown">👑</div>
           <div class="winner-badge">${modeLabels[mode] || 'Winner Picked!'}</div>
@@ -38,7 +42,7 @@ export class WinnerModal {
               <span class="btn-icon">✅</span> Lock In & Add Cooldown
             </button>
             <button class="btn btn-secondary" id="btn-share-pick">
-              <span class="btn-icon">📋</span> Copy to Text
+              <span class="btn-icon">📋</span> Copy to Share
             </button>
             <button class="btn btn-ghost" id="btn-reroll">
               <span class="btn-icon">🔄</span> Play Again
@@ -52,6 +56,20 @@ export class WinnerModal {
     this._bindEvents(winner);
   }
 
+  close() {
+    this.confetti.stop();
+    const sheet = this.container.querySelector('.ios-sheet');
+    const backdrop = this.container.querySelector('.modal-backdrop');
+
+    if (sheet) sheet.classList.add('ios-sheet-closing');
+    if (backdrop) backdrop.classList.add('backdrop-closing');
+
+    setTimeout(() => {
+      this.container.classList.add('hidden');
+      this.container.innerHTML = '';
+    }, 220);
+  }
+
   _bindEvents(winner) {
     const backdrop = this.container.querySelector('#winner-backdrop');
     const btnClose = this.container.querySelector('#btn-close-winner');
@@ -59,16 +77,10 @@ export class WinnerModal {
     const btnShare = this.container.querySelector('#btn-share-pick');
     const btnReroll = this.container.querySelector('#btn-reroll');
 
-    const close = () => {
-      this.confetti.stop();
-      this.container.classList.add('hidden');
-      this.container.innerHTML = '';
-    };
-
-    if (btnClose) btnClose.addEventListener('click', close);
+    if (btnClose) btnClose.addEventListener('click', () => this.close());
     if (backdrop) {
       backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) close();
+        if (e.target === backdrop) this.close();
       });
     }
 
@@ -77,21 +89,21 @@ export class WinnerModal {
         this.audio.playTap();
         this.haptics.tap();
         this.bus.emit('cooldown:record', winner);
-        close();
-        this.bus.emit('toast', `Recorded! "${winner.name}" is now on cooldown.`);
+        this.close();
+        this.bus.emit('toast', `Locked in! "${winner.name}" is on cooldown.`);
       });
     }
 
     if (btnShare) {
       btnShare.addEventListener('click', async () => {
         this.audio.playTap();
-        const text = `Tonight's pick: ${winner.emoji || '✨'} ${winner.name}! (Decided with IndecisionBracket)`;
+        const text = `Tonight's decision: ${winner.emoji || '✨'} ${winner.name}! (Decided with IndecisionBracket)`;
         try {
           if (navigator.clipboard) {
             await navigator.clipboard.writeText(text);
-            btnShare.innerHTML = `<span class="btn-icon">✓</span> Copied!`;
+            btnShare.innerHTML = `<span class="btn-icon">✓</span> Copied to Clipboard!`;
             setTimeout(() => {
-              if (btnShare) btnShare.innerHTML = `<span class="btn-icon">📋</span> Copy to Text`;
+              if (btnShare) btnShare.innerHTML = `<span class="btn-icon">📋</span> Copy to Share`;
             }, 2000);
           }
         } catch (_) {}
@@ -101,7 +113,7 @@ export class WinnerModal {
     if (btnReroll) {
       btnReroll.addEventListener('click', () => {
         this.audio.playTap();
-        close();
+        this.close();
         this.bus.emit('mode:restart');
       });
     }
