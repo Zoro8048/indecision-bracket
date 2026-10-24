@@ -1,0 +1,20 @@
+{
+  "name": "indecision-bracket",
+  "version": "1.0.0",
+  "description": "A premium, zero-dependency, local-first decision engine and tournament bracket for dining, movies, and weekend plans.",
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/bundle.js && node --test tests/*.test.js",
+    "build": "node scripts/bundle.js",
+    "start": "npx -y serve . -p 8080"
+  },
+  "keywords": [
+    "decision-maker",
+    "tournament-bracket",
+    "local-first",
+    "offline-pwa",
+    "web-audio"
+  ],
+  "author": "Keerthan",
+  "license": "MIT"
+}

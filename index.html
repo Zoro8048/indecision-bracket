@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b0d11">
+  <title>IndecisionBracket — Premium Daily Decision Engine</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Celebratory Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- App Shell -->
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <span class="brand-logo">⚔️</span>
+        <span class="brand-title">Indecision<strong>Bracket</strong></span>
+      </div>
+
+      <!-- Active Pool Pill -->
+      <button class="pool-pill" id="btn-pool-selector" aria-label="Change decision category">
+        <span class="pill-dot"></span>
+        <span class="pill-text" id="header-pool-name">🥡 Loading…</span>
+        <span class="pill-chevron">▾</span>
+      </button>
+
+      <!-- Quick Header Controls -->
+      <div class="header-controls">
+        <button class="icon-btn" id="btn-sound-toggle" title="Toggle Sound">🔊</button>
+        <button class="icon-btn" id="btn-header-settings" title="Settings & Pools">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main View Stage -->
+    <main class="main-content" id="view-container">
+      <!-- Dynamic Views (Bracket, Swipe, Wheel) injected here -->
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="mode-tab active" data-mode="bracket" aria-label="Tournament Bracket">
+        <span class="tab-icon">🏆</span>
+        <span class="tab-label">Bracket</span>
+      </button>
+      <button class="mode-tab" data-mode="swipe" aria-label="Duo Pass and Swipe">
+        <span class="tab-icon">⚡</span>
+        <span class="tab-label">Duo Swipe</span>
+      </button>
+      <button class="mode-tab" data-mode="wheel" aria-label="Spin Wheel">
+        <span class="tab-icon">🎡</span>
+        <span class="tab-label">Wheel</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Modal Container -->
+  <div class="modal-layer hidden" id="modal-container"></div>
+
+  <!-- Toast Container -->
+  <div class="toast-layer" id="toast-container"></div>
+
+  <!-- Bundled zero-dependency runtime -->
+  <script src="app.js"></script>
+</body>
+</html>
