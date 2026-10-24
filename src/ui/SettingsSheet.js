@@ -148,6 +148,9 @@ export class SettingsSheet {
                 <button class="btn btn-secondary btn-sm" id="btn-import-backup">📥 Import JSON</button>
                 <button class="btn btn-ghost btn-sm text-danger" id="btn-factory-reset">Reset Presets</button>
                 <input type="file" id="file-import-json" accept=".json" style="display: none;">
+                <button class="btn btn-ghost btn-sm" id="btn-open-legal-settings" style="grid-column: 1 / -1; margin-top: 0.35rem; font-size: 0.75rem;">
+                  ℹ️ Legal & Non-Commercial Notice
+                </button>
               </div>
             </div>
           </div>
@@ -290,6 +293,15 @@ export class SettingsSheet {
           this.storage.factoryReset();
           this.render();
         }
+      });
+    }
+
+    const btnLegal = this.container.querySelector('#btn-open-legal-settings');
+    if (btnLegal) {
+      btnLegal.addEventListener('click', () => {
+        this.audio.playTap();
+        this.close();
+        this.bus.emit('open:legal');
       });
     }
   }

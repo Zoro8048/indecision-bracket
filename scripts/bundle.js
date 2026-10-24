@@ -25,6 +25,7 @@ const MODULE_ORDER = [
   'src/ui/TreeModal.js',
   'src/ui/PoolPickerSheet.js',
   'src/ui/SettingsSheet.js',
+  'src/ui/LegalNoticeSheet.js',
   'src/ui/BracketView.js',
   'src/ui/SwipeView.js',
   'src/ui/WheelView.js',

@@ -17,6 +17,7 @@ import { WinnerModal } from './ui/WinnerModal.js';
 import { TreeModal } from './ui/TreeModal.js';
 import { PoolPickerSheet } from './ui/PoolPickerSheet.js';
 import { SettingsSheet } from './ui/SettingsSheet.js';
+import { LegalNoticeSheet } from './ui/LegalNoticeSheet.js';
 
 class App {
   constructor() {
@@ -74,6 +75,12 @@ class App {
       cooldownManager: this.cooldown,
       audioService: this.audio,
       hapticsService: this.haptics,
+      eventBus: this.bus,
+    });
+
+    this.legalNoticeSheet = new LegalNoticeSheet({
+      container: this.modalContainer,
+      audioService: this.audio,
       eventBus: this.bus,
     });
 
@@ -142,6 +149,10 @@ class App {
       this.settingsSheet.show();
     });
 
+    this.bus.on('open:legal', () => {
+      this.legalNoticeSheet.show();
+    });
+
     this.bus.on('cooldown:record', (winner) => {
       this.cooldown.recordVisit(winner);
       this.storage.recordHistory(winner);
@@ -200,6 +211,15 @@ class App {
         this.audio.setEnabled(newVal);
         this._updateSoundIcon(newVal);
         if (newVal) this.audio.playTap();
+      });
+    }
+
+    // 4. Legal Notice Footer Button
+    const btnLegal = document.getElementById('btn-open-legal');
+    if (btnLegal) {
+      btnLegal.addEventListener('click', () => {
+        this.audio.playTap();
+        this.legalNoticeSheet.show();
       });
     }
 
