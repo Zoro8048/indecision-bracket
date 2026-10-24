@@ -85,6 +85,7 @@ body::before {
   width: 100%;
   max-width: 640px;
   height: 100vh;
+  height: 100dvh;
   height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
@@ -98,19 +99,24 @@ body::before {
   z-index: 1;
 }
 
-/* Header */
+/* Header - Notch & Status Bar Aware */
 .app-header {
-  height: 60px;
-  min-height: 60px;
-  padding: 0 1rem;
+  min-height: calc(56px + env(safe-area-inset-top, 0px));
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 0;
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   border-bottom: 1px solid var(--border-subtle);
-  background: rgba(15, 18, 25, 0.7);
+  background: rgba(15, 18, 25, 0.75);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 10;
+  box-sizing: border-box;
 }
 
 .header-brand {
@@ -213,18 +219,21 @@ body::before {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 1rem;
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
 }
 
 /* Bottom Navigation Bar */
 .bottom-nav {
-  height: 64px;
-  min-height: 64px;
-  padding-bottom: env(safe-area-inset-bottom);
+  height: 60px;
+  min-height: 60px;
+  padding: 0 0.5rem;
   border-top: 1px solid var(--border-subtle);
   background: rgba(13, 16, 22, 0.92);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -855,7 +864,7 @@ body::before {
 .ios-sheet {
   width: 100%;
   max-width: 640px;
-  max-height: 88vh;
+  max-height: calc(90dvh - env(safe-area-inset-top, 0px));
   background: rgba(18, 22, 31, 0.96);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
@@ -866,6 +875,7 @@ body::before {
   flex-direction: column;
   position: relative;
   animation: iosSheetUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .ios-sheet-closing {
@@ -943,8 +953,8 @@ body::before {
 .sheet-scrollable-body {
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem 1.25rem 2.75rem;
-  max-height: calc(88vh - 80px);
+  padding: 1rem 1.25rem max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)));
+  max-height: calc(90dvh - 80px - env(safe-area-inset-top, 0px));
 }
 
 /* iOS List Group (Category Picker) */
@@ -1512,7 +1522,7 @@ input:checked + .ios-switch-slider::before {
 /* Toast Notifications */
 .toast-layer {
   position: fixed;
-  bottom: 80px;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1537,11 +1547,14 @@ input:checked + .ios-switch-slider::before {
   box-shadow: var(--shadow-elevated);
 }
 
-/* Legal & Non-Commercial Footer Bar */
+/* Legal & Non-Commercial Footer Bar - Home Indicator Aware */
 .app-legal-footer {
-  height: 30px;
-  min-height: 30px;
-  padding: 0 1rem;
+  min-height: calc(28px + env(safe-area-inset-bottom, 0px));
+  height: calc(28px + env(safe-area-inset-bottom, 0px));
+  padding-top: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
   background: rgba(9, 12, 17, 0.98);
   border-top: 1px solid var(--border-subtle);
   display: flex;
@@ -1550,6 +1563,7 @@ input:checked + .ios-switch-slider::before {
   font-size: 0.66rem;
   color: var(--text-faint);
   z-index: 10;
+  box-sizing: border-box;
 }
 
 .legal-footer-text {
