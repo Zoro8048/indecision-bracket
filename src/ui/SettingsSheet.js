@@ -80,11 +80,17 @@ export class SettingsSheet {
             <!-- Section 1: Add New Choice -->
             <div class="sheet-section">
               <span class="sheet-section-title">Add Choice to "${selectedPool.name}"</span>
-              <form class="add-item-card" id="form-add-item">
-                <input type="text" class="ios-input input-emoji" id="input-item-emoji" placeholder="🍕" maxlength="4" style="width: 52px; text-align: center;">
-                <input type="text" class="ios-input input-name" id="input-item-name" placeholder="Choice name (e.g. Ramen)" required style="flex: 1;">
-                <input type="text" class="ios-input input-tag" id="input-item-tag" placeholder="Tag" style="width: 90px;">
-                <button type="submit" class="btn btn-primary btn-sm">Add</button>
+              <form class="ios-add-card" id="form-add-item">
+                <div class="add-card-row">
+                  <input type="text" class="ios-input input-emoji" id="input-item-emoji" placeholder="🍕" maxlength="4" aria-label="Choice Emoji">
+                  <input type="text" class="ios-input input-name" id="input-item-name" placeholder="Choice name (e.g. Tonkotsu Ramen)" required aria-label="Choice Name">
+                </div>
+                <div class="add-card-row">
+                  <input type="text" class="ios-input input-tag" id="input-item-tag" placeholder="Tag (e.g. Warm, Romantic)" aria-label="Choice Tag">
+                  <button type="submit" class="btn btn-primary btn-add-choice">
+                    <span class="btn-icon">+</span> Add Choice
+                  </button>
+                </div>
               </form>
             </div>
 
