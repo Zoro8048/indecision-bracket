@@ -5,78 +5,52 @@
 (() => {
   "use strict";
 
-  // --- Module: src/core/EventBus.js ---
+  // --- Module: node_modules/ios-pwa-foundation/src/core/EventBus.js ---
   /**
-   * EventBus - Decoupled Pub/Sub event emitter for IndecisionBracket.
+   * EventBus - Decoupled Pub/Sub Event Router for iOS PWA components.
    */
   class EventBus {
     constructor() {
       this.listeners = new Map();
     }
   
-    /**
-     * Subscribe to an event.
-     * @param {string} event 
-     * @param {Function} handler 
-     * @returns {Function} Unsubscribe function
-     */
-    on(event, handler) {
+    on(event, callback) {
       if (!this.listeners.has(event)) {
         this.listeners.set(event, new Set());
       }
-      this.listeners.get(event).add(handler);
-      return () => this.off(event, handler);
+      this.listeners.get(event).add(callback);
+      return () => this.off(event, callback);
     }
   
-    /**
-     * Unsubscribe from an event.
-     * @param {string} event 
-     * @param {Function} handler 
-     */
-    off(event, handler) {
-      const handlers = this.listeners.get(event);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
+    once(event, callback) {
+      const unsub = this.on(event, (data) => {
+        unsub();
+        callback(data);
+      });
+      return unsub;
+    }
+  
+    off(event, callback) {
+      if (this.listeners.has(event)) {
+        this.listeners.get(event).delete(callback);
+        if (this.listeners.get(event).size === 0) {
           this.listeners.delete(event);
         }
       }
     }
   
-    /**
-     * Subscribe to an event once.
-     * @param {string} event 
-     * @param {Function} handler 
-     */
-    once(event, handler) {
-      const unsub = this.on(event, (...args) => {
-        unsub();
-        handler(...args);
-      });
-      return unsub;
-    }
-  
-    /**
-     * Emit an event with data.
-     * @param {string} event 
-     * @param {any} data 
-     */
     emit(event, data) {
-      const handlers = this.listeners.get(event);
-      if (handlers) {
-        for (const handler of handlers) {
+      if (this.listeners.has(event)) {
+        for (const callback of this.listeners.get(event)) {
           try {
-            handler(data);
+            callback(data);
           } catch (err) {
-            console.error(`[EventBus] Error in handler for event "${event}":`, err);
+            console.error(`Error in event listener for "${event}":`, err);
           }
         }
       }
     }
   
-    /**
-     * Clear all registered listeners.
-     */
     clear() {
       this.listeners.clear();
     }

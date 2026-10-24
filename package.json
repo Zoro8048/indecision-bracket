@@ -16,5 +16,8 @@
     "web-audio"
   ],
   "author": "Keerthan",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "ios-pwa-foundation": "github:Zoro8048/ios-pwa-foundation#v1.0.0"
+  }
 }

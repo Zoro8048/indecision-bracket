@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 
 const MODULE_ORDER = [
-  'src/core/EventBus.js',
+  'node_modules/ios-pwa-foundation/src/core/EventBus.js',
   'src/domain/CooldownManager.js',
   'src/domain/BracketEngine.js',
   'src/domain/SwipeMatcher.js',
