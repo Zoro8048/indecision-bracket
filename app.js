@@ -1897,6 +1897,16 @@
                       <span class="ios-switch-slider"></span>
                     </label>
                   </div>
+  
+                  <div class="ios-setting-row" id="row-install-app">
+                    <div class="setting-text">
+                      <span class="setting-label">📲 Add to Home Screen</span>
+                      <span class="setting-desc">Install as standalone offline PWA</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-trigger-install">
+                      Install
+                    </button>
+                  </div>
                 </div>
               </div>
   
@@ -2011,6 +2021,28 @@
           this.storage.updateSettings({ soundEnabled: e.target.checked });
           this.audio.setEnabled(e.target.checked);
           if (e.target.checked) this.audio.playTap();
+        });
+      }
+  
+      const btnInstall = this.container.querySelector('#btn-trigger-install');
+      if (btnInstall) {
+        btnInstall.addEventListener('click', async () => {
+          this.audio.playTap();
+          if (window.__deferredInstallPrompt) {
+            window.__deferredInstallPrompt.prompt();
+            const { outcome } = await window.__deferredInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+              this.bus.emit('toast', 'App installed to Home Screen!');
+            }
+            window.__deferredInstallPrompt = null;
+          } else {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+              alert("To add to Home Screen on iPhone/iPad:\n\n1. Tap the Share button (square with arrow ↑) at the bottom of Safari.\n2. Scroll down and tap 'Add to Home Screen' (+).\n3. Tap 'Add' in the top right corner.");
+            } else {
+              alert("To install on Chrome, Edge, or Android:\n\n1. Look for the 'Install' icon in the browser address bar, or tap the menu (⋮).\n2. Select 'Install App' or 'Add to Home Screen'.");
+            }
+          }
         });
       }
   
