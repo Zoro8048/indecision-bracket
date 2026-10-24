@@ -1093,20 +1093,30 @@
       this.ctx = null;
       this.enabled = true;
       this._initialized = false;
+  
+      // Auto-resume on very first user interaction anywhere on the window
+      if (typeof window !== 'undefined') {
+        const unlockAudio = () => {
+          this.init();
+          window.removeEventListener('pointerdown', unlockAudio);
+          window.removeEventListener('keydown', unlockAudio);
+        };
+        window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
+        window.addEventListener('keydown', unlockAudio, { once: true, passive: true });
+      }
     }
   
     /**
      * Initialize or resume the Web Audio context on user gesture.
      */
     init() {
-      if (this._initialized && this.ctx && this.ctx.state !== 'suspended') return;
-  
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
           if (!this.ctx) {
             this.ctx = new AudioCtx();
-          } else if (this.ctx.state === 'suspended') {
+          }
+          if (this.ctx.state === 'suspended') {
             this.ctx.resume();
           }
           this._initialized = true;
@@ -1161,13 +1171,11 @@
   
       osc.type = 'sine';
       if (isLike) {
-        // Pleasant rising chime
         osc.frequency.setValueAtTime(440, t);
         osc.frequency.exponentialRampToValueAtTime(880, t + 0.12);
         gain.gain.setValueAtTime(0.25, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
       } else {
-        // Gentle soft slide down
         osc.frequency.setValueAtTime(320, t);
         osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
         gain.gain.setValueAtTime(0.18, t);
@@ -1217,7 +1225,6 @@
       this.init();
       if (!this.ctx) return;
   
-      // Major 9th / Pentatonic celebratory arpeggio: C5, E5, G5, B5, C6
       const notes = [523.25, 659.25, 783.99, 987.77, 1046.50];
       const baseTime = this.ctx.currentTime + 0.05;
   
@@ -1229,9 +1236,8 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, startTime);
   
-        // Warm attack & long crystalline decay
         gain.gain.setValueAtTime(0.001, startTime);
-        gain.gain.linearRampToValueAtTime(0.3 - idx * 0.03, startTime + 0.02);
+        gain.gain.linearRampToValueAtTime(0.28 - idx * 0.03, startTime + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.8);
   
         osc.connect(gain);
@@ -1873,7 +1879,8 @@
   // --- Module: src/ui/BracketView.js ---
   /**
    * BracketView - Head-to-Head Tournament Match UI.
-   * Renders the active faceoff, progress bar, undo button, and bracket tree view.
+   * Redesigned for optimal ergonomics: side-by-side matchup arena, zero viewport overflow,
+   * intuitive ◀ Left / Right ▶ keyboard hotkeys, and tactile animations.
    */
   class BracketView {
     constructor({ container, bracketEngine, audioService, hapticsService, eventBus }) {
@@ -1889,19 +1896,27 @@
       const state = this.engine.getState();
   
       if (state.isComplete && state.champion) {
-        this.bus.emit('tournament:winner', state.champion);
+        this.bus.emit('decision:winner', {
+          winner: state.champion,
+          mode: 'bracket',
+        });
         return;
       }
   
       const match = state.currentMatch;
       if (!match) {
         this.container.innerHTML = `
-          <div class="empty-state">
+          <div class="empty-state animate-fade-in">
             <div class="empty-icon">🏆</div>
-            <h3>No tournament active</h3>
-            <p>Choose a category or click Start Tournament to begin.</p>
+            <h3>Tournament Complete</h3>
+            <p>Click below to re-seed and start a new tournament.</p>
+            <button class="btn btn-primary" id="btn-restart-empty" style="margin-top: 1rem;">
+              <span class="btn-icon">🔄</span> New Tournament
+            </button>
           </div>
         `;
+        const btn = this.container.querySelector('#btn-restart-empty');
+        if (btn) btn.addEventListener('click', () => this.bus.emit('bracket:restart'));
         return;
       }
   
@@ -1911,58 +1926,71 @@
   
       this.container.innerHTML = `
         <div class="bracket-view animate-fade-in">
-          <!-- Tournament Header & Progress -->
+          <!-- Tournament Meta Bar -->
           <div class="bracket-meta">
             <div class="bracket-round-badge">
               <span class="round-indicator-dot"></span>
               <span class="round-title">${state.roundName}</span>
             </div>
             <div class="bracket-progress-label">
-              Match ${progress.completed + 1} of ${progress.totalPlayable}
+              Match <strong>${progress.completed + 1}</strong> of ${progress.totalPlayable}
             </div>
           </div>
   
+          <!-- Sleek Animated Progress Bar -->
           <div class="progress-bar-track">
             <div class="progress-bar-fill" style="width: ${progress.percentage}%"></div>
           </div>
   
-          <!-- Faceoff Arena -->
+          <!-- Faceoff Arena: Side-by-Side Ergonomics -->
           <div class="faceoff-arena">
-            <!-- Card A -->
-            <div class="match-card match-card-a" id="card-option-a" tabindex="0" role="button" aria-label="Choose ${itemA.name}">
-              <div class="card-glow"></div>
-              <div class="card-emoji">${itemA.emoji || '✨'}</div>
-              <div class="card-name">${itemA.name}</div>
-              ${itemA.tag ? `<span class="card-tag">${itemA.tag}</span>` : ''}
-              <div class="card-hotkey-hint">Press 1 or ◀</div>
+            <!-- Card A (Left) -->
+            <div class="match-card match-card-a" id="card-option-a" tabindex="0" role="button" aria-label="Pick ${itemA.name}">
+              <div class="card-badge card-badge-a">
+                <span class="card-badge-key">◀ 1</span>
+              </div>
+              <div class="card-emoji-wrap">
+                <span class="card-emoji">${itemA.emoji || '✨'}</span>
+              </div>
+              <div class="card-info">
+                <h2 class="card-name">${itemA.name}</h2>
+                ${itemA.tag ? `<span class="card-tag">${itemA.tag}</span>` : ''}
+              </div>
+              <div class="card-pick-prompt">Tap to Pick</div>
             </div>
   
             <!-- VS Badge -->
             <div class="vs-divider">
-              <div class="vs-circle">
+              <div class="vs-ring">
                 <span class="vs-text">VS</span>
               </div>
             </div>
   
-            <!-- Card B -->
-            <div class="match-card match-card-b" id="card-option-b" tabindex="0" role="button" aria-label="Choose ${itemB.name}">
-              <div class="card-glow"></div>
-              <div class="card-emoji">${itemB.emoji || '✨'}</div>
-              <div class="card-name">${itemB.name}</div>
-              ${itemB.tag ? `<span class="card-tag">${itemB.tag}</span>` : ''}
-              <div class="card-hotkey-hint">Press 2 or ▶</div>
+            <!-- Card B (Right) -->
+            <div class="match-card match-card-b" id="card-option-b" tabindex="0" role="button" aria-label="Pick ${itemB.name}">
+              <div class="card-badge card-badge-b">
+                <span class="card-badge-key">2 ▶</span>
+              </div>
+              <div class="card-emoji-wrap">
+                <span class="card-emoji">${itemB.emoji || '✨'}</span>
+              </div>
+              <div class="card-info">
+                <h2 class="card-name">${itemB.name}</h2>
+                ${itemB.tag ? `<span class="card-tag">${itemB.tag}</span>` : ''}
+              </div>
+              <div class="card-pick-prompt">Tap to Pick</div>
             </div>
           </div>
   
-          <!-- Action Bar -->
+          <!-- Bracket Action Controls -->
           <div class="bracket-actions">
-            <button class="btn btn-secondary ${progress.canUndo ? '' : 'disabled'}" id="btn-undo-pick" ${progress.canUndo ? '' : 'disabled'}>
-              <span class="btn-icon">↩</span> Undo Pick
+            <button class="btn btn-secondary ${progress.canUndo ? '' : 'disabled'}" id="btn-undo-pick" ${progress.canUndo ? '' : 'disabled'} title="Undo previous decision (Hotkey: Z)">
+              <span class="btn-icon">↩</span> Undo
             </button>
-            <button class="btn btn-ghost" id="btn-view-tree">
+            <button class="btn btn-ghost" id="btn-view-tree" title="Inspect full tournament tree">
               <span class="btn-icon">🌳</span> Bracket Tree
             </button>
-            <button class="btn btn-ghost" id="btn-restart-bracket">
+            <button class="btn btn-ghost" id="btn-restart-bracket" title="Shuffle and restart bracket">
               <span class="btn-icon">🔄</span> Re-seed
             </button>
           </div>
@@ -2018,7 +2046,6 @@
       this.audio.playTap();
       this.haptics.tap();
   
-      // Tactile CSS transition
       winningCard.classList.add('selected-winner');
       losingCard.classList.add('selected-loser');
   
@@ -2035,7 +2062,7 @@
         } else {
           this.render();
         }
-      }, 280);
+      }, 240);
     }
   
     handleKeyDown(e) {
@@ -2064,7 +2091,8 @@
   // --- Module: src/ui/SwipeView.js ---
   /**
    * SwipeView - 2-Player Pass-and-Swipe ("Tinder for Decisions") UI.
-   * Features realistic drag physics, rotation, LIKE/PASS badges, and seamless player handoff.
+   * Features stacked card deck (showing next card preview underneath),
+   * responsive pointer physics, dynamic LIKE/PASS badges, and clear player handoffs.
    */
   class SwipeView {
     constructor({ container, swipeMatcher, audioService, hapticsService, eventBus }) {
@@ -2086,6 +2114,19 @@
       // Check if match found or session finished
       if (state.isComplete) {
         if (state.matchedItem) {
+          this.container.innerHTML = `
+            <div class="empty-state animate-fade-in">
+              <div class="empty-icon">🎉</div>
+              <h3>It's a Match!</h3>
+              <p>You and your partner agreed on <strong>${state.matchedItem.name}</strong>.</p>
+              <button class="btn btn-primary" id="btn-restart-swipe" style="margin-top: 1.25rem;">
+                <span class="btn-icon">🔄</span> Swipe Again
+              </button>
+            </div>
+          `;
+          const btn = this.container.querySelector('#btn-restart-swipe');
+          if (btn) btn.addEventListener('click', () => this.bus.emit('swipe:restart'));
+  
           this.audio.playFanfare();
           this.haptics.victory();
           this.bus.emit('decision:winner', {
@@ -2095,21 +2136,16 @@
         } else {
           this.container.innerHTML = `
             <div class="empty-state animate-fade-in">
-              <div class="empty-icon">🤷‍♂️</div>
+              <div class="empty-icon">🤷</div>
               <h3>No Mutual Match</h3>
-              <p>You and your partner didn't agree on any items in this round.</p>
-              <button class="btn btn-primary" id="btn-restart-swipe" style="margin-top: 1.5rem;">
+              <p>You and your partner didn't overlap on this round. Try picking a few more favorites!</p>
+              <button class="btn btn-primary" id="btn-restart-swipe" style="margin-top: 1.25rem;">
                 <span class="btn-icon">🔄</span> Try Again
               </button>
             </div>
           `;
           const btn = this.container.querySelector('#btn-restart-swipe');
-          if (btn) {
-            btn.addEventListener('click', () => {
-              this.audio.playTap();
-              this.bus.emit('swipe:restart');
-            });
-          }
+          if (btn) btn.addEventListener('click', () => this.bus.emit('swipe:restart'));
         }
         return;
       }
@@ -2119,13 +2155,13 @@
         this.container.innerHTML = `
           <div class="handoff-card animate-scale-up">
             <div class="handoff-icon">📱</div>
-            <h2 class="handoff-title">Pass the Phone to Player 2!</h2>
+            <h2 class="handoff-title">Pass Phone to Player 2!</h2>
             <p class="handoff-subtitle">
-              Player 1 liked <strong>${state.player1LikesCount}</strong> choices. Now it's Player 2's turn. 
-              The first mutual match will win immediately!
+              Player 1 liked <strong>${state.player1LikesCount}</strong> choices.<br>
+              Now it's Player 2's turn. The first mutual match will win immediately!
             </p>
             <button class="btn btn-primary btn-lg" id="btn-start-player2">
-              <span class="btn-icon">👀</span> I'm Ready to Swipe
+              <span class="btn-icon">👀</span> Start Player 2
             </button>
           </div>
         `;
@@ -2135,7 +2171,6 @@
           btnStart.addEventListener('click', () => {
             this.audio.playTap();
             this.haptics.tap();
-            // Advance past handoff state by starting player 2
             this.renderDeck();
           });
         }
@@ -2150,6 +2185,11 @@
       const currentCard = state.currentCard;
       if (!currentCard) return;
   
+      // Next card preview in stack
+      const nextCard = (state.currentIndex + 1 < state.totalCards)
+        ? this.matcher.deck[state.currentIndex + 1]
+        : null;
+  
       this.container.innerHTML = `
         <div class="swipe-view animate-fade-in">
           <!-- Player Indicator Header -->
@@ -2159,13 +2199,24 @@
               Player ${state.activePlayer}'s Turn
             </div>
             <div class="swipe-counter">
-              ${state.currentIndex + 1} of ${state.totalCards}
+              Card <strong>${state.currentIndex + 1}</strong> of ${state.totalCards}
             </div>
           </div>
   
-          <!-- Card Deck Container -->
+          <!-- Stacked Card Deck Container -->
           <div class="card-deck" id="card-deck">
-            <div class="swipe-card" id="active-swipe-card">
+            ${nextCard ? `
+              <div class="swipe-card swipe-card-underneath" aria-hidden="true">
+                <div class="card-content">
+                  <div class="swipe-card-emoji">${nextCard.emoji || '✨'}</div>
+                  <h2 class="swipe-card-title">${nextCard.name}</h2>
+                  ${nextCard.tag ? `<span class="swipe-card-tag">${nextCard.tag}</span>` : ''}
+                </div>
+              </div>
+            ` : ''}
+  
+            <!-- Active Top Card -->
+            <div class="swipe-card swipe-card-active" id="active-swipe-card">
               <!-- Dynamic Badges -->
               <div class="swipe-badge badge-like" id="badge-like">LIKE 👍</div>
               <div class="swipe-badge badge-pass" id="badge-pass">PASS 👎</div>
@@ -2176,16 +2227,16 @@
                 ${currentCard.tag ? `<span class="swipe-card-tag">${currentCard.tag}</span>` : ''}
               </div>
   
-              <div class="swipe-hint">Drag or use arrow keys</div>
+              <div class="swipe-hint">Drag card or use ◀ / ▶ arrow keys</div>
             </div>
           </div>
   
           <!-- Tactile Control Buttons -->
           <div class="swipe-controls">
-            <button class="swipe-btn swipe-btn-pass" id="btn-swipe-pass" aria-label="Pass">
+            <button class="swipe-btn swipe-btn-pass" id="btn-swipe-pass" aria-label="Pass" title="Pass (Left Arrow)">
               <span>✕</span>
             </button>
-            <button class="swipe-btn swipe-btn-like" id="btn-swipe-like" aria-label="Like">
+            <button class="swipe-btn swipe-btn-like" id="btn-swipe-like" aria-label="Like" title="Like (Right Arrow)">
               <span>♥</span>
             </button>
           </div>
@@ -2211,26 +2262,26 @@
         btnLike.addEventListener('click', () => this.animateSwipe(true));
       }
   
-      // Pointer events (handles Mouse and Touch simultaneously)
       const onPointerDown = (e) => {
         if (this._isAnimating) return;
         this.isDragging = true;
         this.dragStartX = e.clientX;
         this.dragCurrentX = e.clientX;
         card.style.transition = 'none';
-        card.setPointerCapture(e.pointerId);
+        try {
+          card.setPointerCapture(e.pointerId);
+        } catch (_) {}
       };
   
       const onPointerMove = (e) => {
         if (!this.isDragging) return;
         this.dragCurrentX = e.clientX;
         const deltaX = this.dragCurrentX - this.dragStartX;
-        const rotation = deltaX * 0.08; // Degree of tilt
+        const rotation = deltaX * 0.07;
   
-        card.style.transform = `translate(${deltaX}px, ${Math.abs(deltaX) * 0.1}px) rotate(${rotation}deg)`;
+        card.style.transform = `translate(${deltaX}px, ${Math.abs(deltaX) * 0.08}px) rotate(${rotation}deg)`;
   
-        // Dynamic opacity for LIKE / PASS stamps
-        const threshold = 120;
+        const threshold = 100;
         if (deltaX > 0) {
           badgeLike.style.opacity = Math.min(1, deltaX / threshold);
           badgePass.style.opacity = 0;
@@ -2248,15 +2299,14 @@
         } catch (_) {}
   
         const deltaX = this.dragCurrentX - this.dragStartX;
-        const threshold = 90;
+        const threshold = 80;
   
         if (deltaX > threshold) {
           this.animateSwipe(true);
         } else if (deltaX < -threshold) {
           this.animateSwipe(false);
         } else {
-          // Snap back with spring
-          card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+          card.style.transition = 'transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
           card.style.transform = 'translate(0px, 0px) rotate(0deg)';
           badgeLike.style.opacity = 0;
           badgePass.style.opacity = 0;
@@ -2287,9 +2337,9 @@
   
       if (card) {
         const flyX = isLike ? window.innerWidth + 200 : -window.innerWidth - 200;
-        const rot = isLike ? 35 : -35;
-        card.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
-        card.style.transform = `translate(${flyX}px, 60px) rotate(${rot}deg)`;
+        const rot = isLike ? 30 : -30;
+        card.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease';
+        card.style.transform = `translate(${flyX}px, 40px) rotate(${rot}deg)`;
         card.style.opacity = '0';
       }
   
@@ -2297,7 +2347,7 @@
         this._isAnimating = false;
         this.matcher.swipe(isLike);
         this.render();
-      }, 320);
+      }, 280);
     }
   
     handleKeyDown(e) {
@@ -2326,8 +2376,8 @@
       this.ctx = null;
       this.animId = null;
       this.colors = [
-        '#1e293b', '#0f766e', '#1e1b4b', '#b45309',
-        '#374151', '#065f46', '#4c1d95', '#9a3412',
+        '#1e293b', '#0f766e', '#312e81', '#9a3412',
+        '#334155', '#047857', '#4338ca', '#c2410c',
       ];
     }
   
@@ -2339,14 +2389,21 @@
       this.container.innerHTML = `
         <div class="wheel-view animate-fade-in">
           <div class="wheel-stage">
-            <div class="wheel-pointer">▼</div>
+            <!-- Crisp SVG Precision Pointer -->
+            <div class="wheel-pointer-svg">
+              <svg viewBox="0 0 32 36" width="32" height="36">
+                <path d="M16 34 L3 6 C2 4 3 2 5 2 L27 2 C29 2 30 4 29 6 Z" fill="#f43f5e" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" filter="drop-shadow(0 2px 6px rgba(244,63,94,0.6))"/>
+              </svg>
+            </div>
+  
             <canvas id="wheel-canvas"></canvas>
+  
             <button class="wheel-center-btn" id="btn-spin-wheel" aria-label="Spin the wheel">
               <span class="spin-label">SPIN</span>
             </button>
           </div>
   
-          <div class="wheel-hint">Tap SPIN or press Spacebar</div>
+          <div class="wheel-hint">Tap <strong>SPIN</strong> or press <strong>Spacebar</strong></div>
         </div>
       `;
   
@@ -2362,13 +2419,16 @@
     }
   
     _setupCanvas() {
-      const size = Math.min(380, window.innerWidth - 48);
+      const parentWidth = this.container.clientWidth || window.innerWidth;
+      const size = Math.max(280, Math.min(360, parentWidth - 40));
       const dpr = window.devicePixelRatio || 1;
+  
       this.canvas.width = size * dpr;
       this.canvas.height = size * dpr;
       this.canvas.style.width = `${size}px`;
       this.canvas.style.height = `${size}px`;
-      this.ctx.scale(dpr, dpr);
+  
+      this.dpr = dpr;
       this.size = size;
     }
   
@@ -2386,7 +2446,6 @@
         const result = this.physics.update();
   
         if (result.tick) {
-          // Dynamic pitch based on velocity
           const speed = this.physics.angularVelocity;
           this.audio.playRatchetTick(speed * 3.5);
           this.haptics.tick();
@@ -2413,13 +2472,18 @@
     }
   
     draw() {
-      const { ctx, size } = this;
+      const { ctx, size, dpr } = this;
       const center = size / 2;
-      const radius = center - 8;
+      const radius = center - 6;
       const items = this.physics.items;
       if (items.length === 0) return;
   
-      ctx.clearRect(0, 0, size, size);
+      // Reset transform and clear entire canvas
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  
+      // Apply DPR scaling
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   
       const currentAngle = this.physics.getAngle();
       const sectorAngle = (Math.PI * 2) / items.length;
@@ -2438,34 +2502,35 @@
         ctx.arc(0, 0, radius, startAngle, endAngle);
         ctx.closePath();
   
-        // Sector fill
+        // Sector background
         ctx.fillStyle = this.colors[i % this.colors.length];
         ctx.fill();
   
-        // Sector border
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        // Clean sector border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
   
-        // Text and emoji inside wedge
+        // Sector label
         ctx.save();
         ctx.rotate(startAngle + sectorAngle / 2);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#f8fafc';
-        ctx.font = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.font = '600 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   
         const label = `${item.emoji || ''} ${item.name}`;
-        // Truncate if too long
-        const displayLabel = label.length > 18 ? label.substring(0, 16) + '…' : label;
-        ctx.fillText(displayLabel, radius - 20, 5);
+        const displayLabel = label.length > 17 ? label.substring(0, 15) + '…' : label;
+  
+        // Position text comfortably between outer edge and center button
+        ctx.fillText(displayLabel, radius - 18, 4.5);
         ctx.restore();
       });
   
       // Outer wheel ring
       ctx.beginPath();
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.lineWidth = 3.5;
       ctx.stroke();
   
       ctx.restore();

@@ -1,6 +1,7 @@
 /**
  * SwipeView - 2-Player Pass-and-Swipe ("Tinder for Decisions") UI.
- * Features realistic drag physics, rotation, LIKE/PASS badges, and seamless player handoff.
+ * Features stacked card deck (showing next card preview underneath),
+ * responsive pointer physics, dynamic LIKE/PASS badges, and clear player handoffs.
  */
 export class SwipeView {
   constructor({ container, swipeMatcher, audioService, hapticsService, eventBus }) {
@@ -22,6 +23,19 @@ export class SwipeView {
     // Check if match found or session finished
     if (state.isComplete) {
       if (state.matchedItem) {
+        this.container.innerHTML = `
+          <div class="empty-state animate-fade-in">
+            <div class="empty-icon">🎉</div>
+            <h3>It's a Match!</h3>
+            <p>You and your partner agreed on <strong>${state.matchedItem.name}</strong>.</p>
+            <button class="btn btn-primary" id="btn-restart-swipe" style="margin-top: 1.25rem;">
+              <span class="btn-icon">🔄</span> Swipe Again
+            </button>
+          </div>
+        `;
+        const btn = this.container.querySelector('#btn-restart-swipe');
+        if (btn) btn.addEventListener('click', () => this.bus.emit('swipe:restart'));
+
         this.audio.playFanfare();
         this.haptics.victory();
         this.bus.emit('decision:winner', {
@@ -31,21 +45,16 @@ export class SwipeView {
       } else {
         this.container.innerHTML = `
           <div class="empty-state animate-fade-in">
-            <div class="empty-icon">🤷‍♂️</div>
+            <div class="empty-icon">🤷</div>
             <h3>No Mutual Match</h3>
-            <p>You and your partner didn't agree on any items in this round.</p>
-            <button class="btn btn-primary" id="btn-restart-swipe" style="margin-top: 1.5rem;">
+            <p>You and your partner didn't overlap on this round. Try picking a few more favorites!</p>
+            <button class="btn btn-primary" id="btn-restart-swipe" style="margin-top: 1.25rem;">
               <span class="btn-icon">🔄</span> Try Again
             </button>
           </div>
         `;
         const btn = this.container.querySelector('#btn-restart-swipe');
-        if (btn) {
-          btn.addEventListener('click', () => {
-            this.audio.playTap();
-            this.bus.emit('swipe:restart');
-          });
-        }
+        if (btn) btn.addEventListener('click', () => this.bus.emit('swipe:restart'));
       }
       return;
     }
@@ -55,13 +64,13 @@ export class SwipeView {
       this.container.innerHTML = `
         <div class="handoff-card animate-scale-up">
           <div class="handoff-icon">📱</div>
-          <h2 class="handoff-title">Pass the Phone to Player 2!</h2>
+          <h2 class="handoff-title">Pass Phone to Player 2!</h2>
           <p class="handoff-subtitle">
-            Player 1 liked <strong>${state.player1LikesCount}</strong> choices. Now it's Player 2's turn. 
-            The first mutual match will win immediately!
+            Player 1 liked <strong>${state.player1LikesCount}</strong> choices.<br>
+            Now it's Player 2's turn. The first mutual match will win immediately!
           </p>
           <button class="btn btn-primary btn-lg" id="btn-start-player2">
-            <span class="btn-icon">👀</span> I'm Ready to Swipe
+            <span class="btn-icon">👀</span> Start Player 2
           </button>
         </div>
       `;
@@ -71,7 +80,6 @@ export class SwipeView {
         btnStart.addEventListener('click', () => {
           this.audio.playTap();
           this.haptics.tap();
-          // Advance past handoff state by starting player 2
           this.renderDeck();
         });
       }
@@ -86,6 +94,11 @@ export class SwipeView {
     const currentCard = state.currentCard;
     if (!currentCard) return;
 
+    // Next card preview in stack
+    const nextCard = (state.currentIndex + 1 < state.totalCards)
+      ? this.matcher.deck[state.currentIndex + 1]
+      : null;
+
     this.container.innerHTML = `
       <div class="swipe-view animate-fade-in">
         <!-- Player Indicator Header -->
@@ -95,13 +108,24 @@ export class SwipeView {
             Player ${state.activePlayer}'s Turn
           </div>
           <div class="swipe-counter">
-            ${state.currentIndex + 1} of ${state.totalCards}
+            Card <strong>${state.currentIndex + 1}</strong> of ${state.totalCards}
           </div>
         </div>
 
-        <!-- Card Deck Container -->
+        <!-- Stacked Card Deck Container -->
         <div class="card-deck" id="card-deck">
-          <div class="swipe-card" id="active-swipe-card">
+          ${nextCard ? `
+            <div class="swipe-card swipe-card-underneath" aria-hidden="true">
+              <div class="card-content">
+                <div class="swipe-card-emoji">${nextCard.emoji || '✨'}</div>
+                <h2 class="swipe-card-title">${nextCard.name}</h2>
+                ${nextCard.tag ? `<span class="swipe-card-tag">${nextCard.tag}</span>` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Active Top Card -->
+          <div class="swipe-card swipe-card-active" id="active-swipe-card">
             <!-- Dynamic Badges -->
             <div class="swipe-badge badge-like" id="badge-like">LIKE 👍</div>
             <div class="swipe-badge badge-pass" id="badge-pass">PASS 👎</div>
@@ -112,16 +136,16 @@ export class SwipeView {
               ${currentCard.tag ? `<span class="swipe-card-tag">${currentCard.tag}</span>` : ''}
             </div>
 
-            <div class="swipe-hint">Drag or use arrow keys</div>
+            <div class="swipe-hint">Drag card or use ◀ / ▶ arrow keys</div>
           </div>
         </div>
 
         <!-- Tactile Control Buttons -->
         <div class="swipe-controls">
-          <button class="swipe-btn swipe-btn-pass" id="btn-swipe-pass" aria-label="Pass">
+          <button class="swipe-btn swipe-btn-pass" id="btn-swipe-pass" aria-label="Pass" title="Pass (Left Arrow)">
             <span>✕</span>
           </button>
-          <button class="swipe-btn swipe-btn-like" id="btn-swipe-like" aria-label="Like">
+          <button class="swipe-btn swipe-btn-like" id="btn-swipe-like" aria-label="Like" title="Like (Right Arrow)">
             <span>♥</span>
           </button>
         </div>
@@ -147,26 +171,26 @@ export class SwipeView {
       btnLike.addEventListener('click', () => this.animateSwipe(true));
     }
 
-    // Pointer events (handles Mouse and Touch simultaneously)
     const onPointerDown = (e) => {
       if (this._isAnimating) return;
       this.isDragging = true;
       this.dragStartX = e.clientX;
       this.dragCurrentX = e.clientX;
       card.style.transition = 'none';
-      card.setPointerCapture(e.pointerId);
+      try {
+        card.setPointerCapture(e.pointerId);
+      } catch (_) {}
     };
 
     const onPointerMove = (e) => {
       if (!this.isDragging) return;
       this.dragCurrentX = e.clientX;
       const deltaX = this.dragCurrentX - this.dragStartX;
-      const rotation = deltaX * 0.08; // Degree of tilt
+      const rotation = deltaX * 0.07;
 
-      card.style.transform = `translate(${deltaX}px, ${Math.abs(deltaX) * 0.1}px) rotate(${rotation}deg)`;
+      card.style.transform = `translate(${deltaX}px, ${Math.abs(deltaX) * 0.08}px) rotate(${rotation}deg)`;
 
-      // Dynamic opacity for LIKE / PASS stamps
-      const threshold = 120;
+      const threshold = 100;
       if (deltaX > 0) {
         badgeLike.style.opacity = Math.min(1, deltaX / threshold);
         badgePass.style.opacity = 0;
@@ -184,15 +208,14 @@ export class SwipeView {
       } catch (_) {}
 
       const deltaX = this.dragCurrentX - this.dragStartX;
-      const threshold = 90;
+      const threshold = 80;
 
       if (deltaX > threshold) {
         this.animateSwipe(true);
       } else if (deltaX < -threshold) {
         this.animateSwipe(false);
       } else {
-        // Snap back with spring
-        card.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        card.style.transition = 'transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
         card.style.transform = 'translate(0px, 0px) rotate(0deg)';
         badgeLike.style.opacity = 0;
         badgePass.style.opacity = 0;
@@ -223,9 +246,9 @@ export class SwipeView {
 
     if (card) {
       const flyX = isLike ? window.innerWidth + 200 : -window.innerWidth - 200;
-      const rot = isLike ? 35 : -35;
-      card.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
-      card.style.transform = `translate(${flyX}px, 60px) rotate(${rot}deg)`;
+      const rot = isLike ? 30 : -30;
+      card.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease';
+      card.style.transform = `translate(${flyX}px, 40px) rotate(${rot}deg)`;
       card.style.opacity = '0';
     }
 
@@ -233,7 +256,7 @@ export class SwipeView {
       this._isAnimating = false;
       this.matcher.swipe(isLike);
       this.render();
-    }, 320);
+    }, 280);
   }
 
   handleKeyDown(e) {

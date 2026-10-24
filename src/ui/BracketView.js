@@ -1,6 +1,7 @@
 /**
  * BracketView - Head-to-Head Tournament Match UI.
- * Renders the active faceoff, progress bar, undo button, and bracket tree view.
+ * Redesigned for optimal ergonomics: side-by-side matchup arena, zero viewport overflow,
+ * intuitive ◀ Left / Right ▶ keyboard hotkeys, and tactile animations.
  */
 export class BracketView {
   constructor({ container, bracketEngine, audioService, hapticsService, eventBus }) {
@@ -16,19 +17,27 @@ export class BracketView {
     const state = this.engine.getState();
 
     if (state.isComplete && state.champion) {
-      this.bus.emit('tournament:winner', state.champion);
+      this.bus.emit('decision:winner', {
+        winner: state.champion,
+        mode: 'bracket',
+      });
       return;
     }
 
     const match = state.currentMatch;
     if (!match) {
       this.container.innerHTML = `
-        <div class="empty-state">
+        <div class="empty-state animate-fade-in">
           <div class="empty-icon">🏆</div>
-          <h3>No tournament active</h3>
-          <p>Choose a category or click Start Tournament to begin.</p>
+          <h3>Tournament Complete</h3>
+          <p>Click below to re-seed and start a new tournament.</p>
+          <button class="btn btn-primary" id="btn-restart-empty" style="margin-top: 1rem;">
+            <span class="btn-icon">🔄</span> New Tournament
+          </button>
         </div>
       `;
+      const btn = this.container.querySelector('#btn-restart-empty');
+      if (btn) btn.addEventListener('click', () => this.bus.emit('bracket:restart'));
       return;
     }
 
@@ -38,58 +47,71 @@ export class BracketView {
 
     this.container.innerHTML = `
       <div class="bracket-view animate-fade-in">
-        <!-- Tournament Header & Progress -->
+        <!-- Tournament Meta Bar -->
         <div class="bracket-meta">
           <div class="bracket-round-badge">
             <span class="round-indicator-dot"></span>
             <span class="round-title">${state.roundName}</span>
           </div>
           <div class="bracket-progress-label">
-            Match ${progress.completed + 1} of ${progress.totalPlayable}
+            Match <strong>${progress.completed + 1}</strong> of ${progress.totalPlayable}
           </div>
         </div>
 
+        <!-- Sleek Animated Progress Bar -->
         <div class="progress-bar-track">
           <div class="progress-bar-fill" style="width: ${progress.percentage}%"></div>
         </div>
 
-        <!-- Faceoff Arena -->
+        <!-- Faceoff Arena: Side-by-Side Ergonomics -->
         <div class="faceoff-arena">
-          <!-- Card A -->
-          <div class="match-card match-card-a" id="card-option-a" tabindex="0" role="button" aria-label="Choose ${itemA.name}">
-            <div class="card-glow"></div>
-            <div class="card-emoji">${itemA.emoji || '✨'}</div>
-            <div class="card-name">${itemA.name}</div>
-            ${itemA.tag ? `<span class="card-tag">${itemA.tag}</span>` : ''}
-            <div class="card-hotkey-hint">Press 1 or ◀</div>
+          <!-- Card A (Left) -->
+          <div class="match-card match-card-a" id="card-option-a" tabindex="0" role="button" aria-label="Pick ${itemA.name}">
+            <div class="card-badge card-badge-a">
+              <span class="card-badge-key">◀ 1</span>
+            </div>
+            <div class="card-emoji-wrap">
+              <span class="card-emoji">${itemA.emoji || '✨'}</span>
+            </div>
+            <div class="card-info">
+              <h2 class="card-name">${itemA.name}</h2>
+              ${itemA.tag ? `<span class="card-tag">${itemA.tag}</span>` : ''}
+            </div>
+            <div class="card-pick-prompt">Tap to Pick</div>
           </div>
 
           <!-- VS Badge -->
           <div class="vs-divider">
-            <div class="vs-circle">
+            <div class="vs-ring">
               <span class="vs-text">VS</span>
             </div>
           </div>
 
-          <!-- Card B -->
-          <div class="match-card match-card-b" id="card-option-b" tabindex="0" role="button" aria-label="Choose ${itemB.name}">
-            <div class="card-glow"></div>
-            <div class="card-emoji">${itemB.emoji || '✨'}</div>
-            <div class="card-name">${itemB.name}</div>
-            ${itemB.tag ? `<span class="card-tag">${itemB.tag}</span>` : ''}
-            <div class="card-hotkey-hint">Press 2 or ▶</div>
+          <!-- Card B (Right) -->
+          <div class="match-card match-card-b" id="card-option-b" tabindex="0" role="button" aria-label="Pick ${itemB.name}">
+            <div class="card-badge card-badge-b">
+              <span class="card-badge-key">2 ▶</span>
+            </div>
+            <div class="card-emoji-wrap">
+              <span class="card-emoji">${itemB.emoji || '✨'}</span>
+            </div>
+            <div class="card-info">
+              <h2 class="card-name">${itemB.name}</h2>
+              ${itemB.tag ? `<span class="card-tag">${itemB.tag}</span>` : ''}
+            </div>
+            <div class="card-pick-prompt">Tap to Pick</div>
           </div>
         </div>
 
-        <!-- Action Bar -->
+        <!-- Bracket Action Controls -->
         <div class="bracket-actions">
-          <button class="btn btn-secondary ${progress.canUndo ? '' : 'disabled'}" id="btn-undo-pick" ${progress.canUndo ? '' : 'disabled'}>
-            <span class="btn-icon">↩</span> Undo Pick
+          <button class="btn btn-secondary ${progress.canUndo ? '' : 'disabled'}" id="btn-undo-pick" ${progress.canUndo ? '' : 'disabled'} title="Undo previous decision (Hotkey: Z)">
+            <span class="btn-icon">↩</span> Undo
           </button>
-          <button class="btn btn-ghost" id="btn-view-tree">
+          <button class="btn btn-ghost" id="btn-view-tree" title="Inspect full tournament tree">
             <span class="btn-icon">🌳</span> Bracket Tree
           </button>
-          <button class="btn btn-ghost" id="btn-restart-bracket">
+          <button class="btn btn-ghost" id="btn-restart-bracket" title="Shuffle and restart bracket">
             <span class="btn-icon">🔄</span> Re-seed
           </button>
         </div>
@@ -145,7 +167,6 @@ export class BracketView {
     this.audio.playTap();
     this.haptics.tap();
 
-    // Tactile CSS transition
     winningCard.classList.add('selected-winner');
     losingCard.classList.add('selected-loser');
 
@@ -162,7 +183,7 @@ export class BracketView {
       } else {
         this.render();
       }
-    }, 280);
+    }, 240);
   }
 
   handleKeyDown(e) {

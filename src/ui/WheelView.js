@@ -13,8 +13,8 @@ export class WheelView {
     this.ctx = null;
     this.animId = null;
     this.colors = [
-      '#1e293b', '#0f766e', '#1e1b4b', '#b45309',
-      '#374151', '#065f46', '#4c1d95', '#9a3412',
+      '#1e293b', '#0f766e', '#312e81', '#9a3412',
+      '#334155', '#047857', '#4338ca', '#c2410c',
     ];
   }
 
@@ -26,14 +26,21 @@ export class WheelView {
     this.container.innerHTML = `
       <div class="wheel-view animate-fade-in">
         <div class="wheel-stage">
-          <div class="wheel-pointer">▼</div>
+          <!-- Crisp SVG Precision Pointer -->
+          <div class="wheel-pointer-svg">
+            <svg viewBox="0 0 32 36" width="32" height="36">
+              <path d="M16 34 L3 6 C2 4 3 2 5 2 L27 2 C29 2 30 4 29 6 Z" fill="#f43f5e" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" filter="drop-shadow(0 2px 6px rgba(244,63,94,0.6))"/>
+            </svg>
+          </div>
+
           <canvas id="wheel-canvas"></canvas>
+
           <button class="wheel-center-btn" id="btn-spin-wheel" aria-label="Spin the wheel">
             <span class="spin-label">SPIN</span>
           </button>
         </div>
 
-        <div class="wheel-hint">Tap SPIN or press Spacebar</div>
+        <div class="wheel-hint">Tap <strong>SPIN</strong> or press <strong>Spacebar</strong></div>
       </div>
     `;
 
@@ -49,13 +56,16 @@ export class WheelView {
   }
 
   _setupCanvas() {
-    const size = Math.min(380, window.innerWidth - 48);
+    const parentWidth = this.container.clientWidth || window.innerWidth;
+    const size = Math.max(280, Math.min(360, parentWidth - 40));
     const dpr = window.devicePixelRatio || 1;
+
     this.canvas.width = size * dpr;
     this.canvas.height = size * dpr;
     this.canvas.style.width = `${size}px`;
     this.canvas.style.height = `${size}px`;
-    this.ctx.scale(dpr, dpr);
+
+    this.dpr = dpr;
     this.size = size;
   }
 
@@ -73,7 +83,6 @@ export class WheelView {
       const result = this.physics.update();
 
       if (result.tick) {
-        // Dynamic pitch based on velocity
         const speed = this.physics.angularVelocity;
         this.audio.playRatchetTick(speed * 3.5);
         this.haptics.tick();
@@ -100,13 +109,18 @@ export class WheelView {
   }
 
   draw() {
-    const { ctx, size } = this;
+    const { ctx, size, dpr } = this;
     const center = size / 2;
-    const radius = center - 8;
+    const radius = center - 6;
     const items = this.physics.items;
     if (items.length === 0) return;
 
-    ctx.clearRect(0, 0, size, size);
+    // Reset transform and clear entire canvas
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Apply DPR scaling
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const currentAngle = this.physics.getAngle();
     const sectorAngle = (Math.PI * 2) / items.length;
@@ -125,34 +139,35 @@ export class WheelView {
       ctx.arc(0, 0, radius, startAngle, endAngle);
       ctx.closePath();
 
-      // Sector fill
+      // Sector background
       ctx.fillStyle = this.colors[i % this.colors.length];
       ctx.fill();
 
-      // Sector border
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      // Clean sector border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Text and emoji inside wedge
+      // Sector label
       ctx.save();
       ctx.rotate(startAngle + sectorAngle / 2);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#f8fafc';
-      ctx.font = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.font = '600 12.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
       const label = `${item.emoji || ''} ${item.name}`;
-      // Truncate if too long
-      const displayLabel = label.length > 18 ? label.substring(0, 16) + '…' : label;
-      ctx.fillText(displayLabel, radius - 20, 5);
+      const displayLabel = label.length > 17 ? label.substring(0, 15) + '…' : label;
+
+      // Position text comfortably between outer edge and center button
+      ctx.fillText(displayLabel, radius - 18, 4.5);
       ctx.restore();
     });
 
     // Outer wheel ring
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 3.5;
     ctx.stroke();
 
     ctx.restore();

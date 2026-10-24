@@ -7,20 +7,30 @@ export class AudioService {
     this.ctx = null;
     this.enabled = true;
     this._initialized = false;
+
+    // Auto-resume on very first user interaction anywhere on the window
+    if (typeof window !== 'undefined') {
+      const unlockAudio = () => {
+        this.init();
+        window.removeEventListener('pointerdown', unlockAudio);
+        window.removeEventListener('keydown', unlockAudio);
+      };
+      window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
+      window.addEventListener('keydown', unlockAudio, { once: true, passive: true });
+    }
   }
 
   /**
    * Initialize or resume the Web Audio context on user gesture.
    */
   init() {
-    if (this._initialized && this.ctx && this.ctx.state !== 'suspended') return;
-
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         if (!this.ctx) {
           this.ctx = new AudioCtx();
-        } else if (this.ctx.state === 'suspended') {
+        }
+        if (this.ctx.state === 'suspended') {
           this.ctx.resume();
         }
         this._initialized = true;
@@ -75,13 +85,11 @@ export class AudioService {
 
     osc.type = 'sine';
     if (isLike) {
-      // Pleasant rising chime
       osc.frequency.setValueAtTime(440, t);
       osc.frequency.exponentialRampToValueAtTime(880, t + 0.12);
       gain.gain.setValueAtTime(0.25, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
     } else {
-      // Gentle soft slide down
       osc.frequency.setValueAtTime(320, t);
       osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
       gain.gain.setValueAtTime(0.18, t);
@@ -131,7 +139,6 @@ export class AudioService {
     this.init();
     if (!this.ctx) return;
 
-    // Major 9th / Pentatonic celebratory arpeggio: C5, E5, G5, B5, C6
     const notes = [523.25, 659.25, 783.99, 987.77, 1046.50];
     const baseTime = this.ctx.currentTime + 0.05;
 
@@ -143,9 +150,8 @@ export class AudioService {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, startTime);
 
-      // Warm attack & long crystalline decay
       gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.linearRampToValueAtTime(0.3 - idx * 0.03, startTime + 0.02);
+      gain.gain.linearRampToValueAtTime(0.28 - idx * 0.03, startTime + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.8);
 
       osc.connect(gain);
