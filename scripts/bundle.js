@@ -51,7 +51,16 @@ const chunks = [
 ];
 
 for (const relPath of MODULE_ORDER) {
-  const fullPath = path.join(rootDir, relPath);
+  let fullPath = path.join(rootDir, relPath);
+  if (!fs.existsSync(fullPath)) {
+    // Fallback if node_modules not yet populated
+    const fallbackPath = path.resolve(rootDir, '..', relPath.replace(/^node_modules\//, ''));
+    if (fs.existsSync(fallbackPath)) {
+      fullPath = fallbackPath;
+    } else {
+      throw new Error(`Module file not found: ${fullPath}. Did you run "npm install"?`);
+    }
+  }
   const raw = fs.readFileSync(fullPath, 'utf8');
   const transformed = stripImportsAndExports(raw);
   chunks.push(`\n  // --- Module: ${relPath} ---\n  ${transformed.split('\n').join('\n  ')}`);

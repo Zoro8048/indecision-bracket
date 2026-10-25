@@ -18,6 +18,6 @@
   "author": "Keerthan",
   "license": "MIT",
   "dependencies": {
-    "ios-pwa-foundation": "github:Zoro8048/ios-pwa-foundation#v1.0.0"
+    "ios-pwa-foundation": "git+https://github.com/Zoro8048/ios-pwa-foundation.git#v1.0.0"
   }
 }

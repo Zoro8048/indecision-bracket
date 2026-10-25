@@ -27,6 +27,9 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Verify ES Module Syntax
         run: |
           for f in src/**/*.js src/*.js; do node --check "$f"; done
